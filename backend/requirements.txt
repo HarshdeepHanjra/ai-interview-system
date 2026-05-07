@@ -1,0 +1,11 @@
+flask
+flask-cors
+pyodbc
+speechrecognition
+pyaudio
+numpy
+scipy
+opencv-python
+wave
+pydub
+noisereduce
