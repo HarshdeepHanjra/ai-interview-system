@@ -7,7 +7,6 @@ from contextlib import contextmanager
 from dotenv import load_dotenv
 import hashlib
 import logging
-import urllib.parse
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -23,29 +22,21 @@ class Database:
             # Get connection string from environment
             database_url = os.getenv('DATABASE_URL')
             
-            # For Supabase, we need to ensure SSL is enabled
             if database_url:
-                # Parse the URL and add sslmode if not present
-                if 'sslmode' not in database_url:
-                    if '?' in database_url:
-                        database_url += '&sslmode=require'
-                    else:
-                        database_url += '?sslmode=require'
-                
                 self.pool = SimpleConnectionPool(
                     1, 20,
                     dsn=database_url,
                     sslmode='require'
                 )
             else:
-                # Use individual parameters
+                # Use individual parameters (fallback)
                 self.pool = SimpleConnectionPool(
                     1, 20,
                     host=os.getenv('DB_HOST', 'localhost'),
                     port=os.getenv('DB_PORT', '5432'),
                     database=os.getenv('DB_NAME', 'postgres'),
                     user=os.getenv('DB_USER', 'postgres'),
-                    password=os.getenv('DB_PASSWORD', '098@Sjsharsh'),
+                    password=os.getenv('DB_PASSWORD', ''),
                     sslmode='require'
                 )
             logger.info("Supabase database connection pool created successfully")

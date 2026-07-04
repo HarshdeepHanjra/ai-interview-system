@@ -7,6 +7,7 @@ import tempfile
 import logging
 from dotenv import load_dotenv
 import traceback
+from datetime import timedelta
 
 load_dotenv()
 
@@ -18,14 +19,24 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'your-secret-key-change-this')
 
-# CORS Configuration for Render + Vercel
+# Session configuration
+app.config.update(
+    SESSION_COOKIE_SECURE=True,
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE='Lax',
+    PERMANENT_SESSION_LIFETIME=timedelta(days=7)
+)
+
+# CORS Configuration for Vercel + Render
 CORS(app, 
      supports_credentials=True, 
      origins=[
          'http://localhost:3000',
+         'http://localhost:5000',
          'https://ai-interview-frontend.vercel.app',
          'https://ai-interview-system.vercel.app',
-         'https://*.vercel.app'
+         'https://*.vercel.app',
+         'https://*.onrender.com'
      ],
      allow_headers=['Content-Type', 'Authorization', 'Accept'],
      methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'])
@@ -38,20 +49,16 @@ from database import db, UserDAO, InterviewSessionDAO, QuestionResponseDAO
 # =============================================
 
 def get_db_connection():
-    """Get database connection (for compatibility)"""
     return db
 
 def register_user(username, email, password):
-    """Register a new user"""
     return UserDAO.create_user(username, email, password)
 
 def login_user(username, password):
-    """Login user"""
     return UserDAO.login_user(username, password)
 
 def save_interview_session(user_id, role, overall_score, overall_feedback, 
                           transcript, audio_quality, camera_score, questions_data, total_time=0):
-    """Save interview session"""
     try:
         session_id = InterviewSessionDAO.create_session(
             user_id, role, overall_score, overall_feedback, 
@@ -89,7 +96,6 @@ def save_interview_session(user_id, role, overall_score, overall_feedback,
         return None
 
 def get_session_details(session_id):
-    """Get session details"""
     try:
         session_data = InterviewSessionDAO.get_session(session_id)
         if session_data:
@@ -103,7 +109,6 @@ def get_session_details(session_id):
         return None
 
 def get_user_sessions(user_id):
-    """Get user sessions"""
     return InterviewSessionDAO.get_user_sessions(user_id)
 
 # =============================================
@@ -111,7 +116,6 @@ def get_user_sessions(user_id):
 # =============================================
 
 def get_all_roles():
-    """Get all interview roles"""
     return {
         'general': {'name': 'General', 'icon': '💼'},
         'software_engineering': {'name': 'Software Engineering', 'icon': '💻'},
@@ -124,37 +128,20 @@ def get_all_roles():
     }
 
 def get_questions_by_role(role):
-    """Get questions for a specific role"""
     questions = {
         'general': [
             {'text': "Tell me about yourself and your background.", 'expected_keywords': ['experience', 'skills', 'background', 'career', 'goals'], 'difficulty': 'Easy'},
             {'text': "What are your greatest strengths and weaknesses?", 'expected_keywords': ['strength', 'weakness', 'improvement', 'self-awareness', 'growth'], 'difficulty': 'Easy'},
             {'text': "Where do you see yourself in 5 years?", 'expected_keywords': ['career', 'goals', 'growth', 'aspirations', 'development'], 'difficulty': 'Easy'},
             {'text': "Why should we hire you?", 'expected_keywords': ['skills', 'experience', 'value', 'contribution', 'unique'], 'difficulty': 'Easy'},
-            {'text': "Describe a challenge you faced and how you overcame it.", 'expected_keywords': ['challenge', 'solution', 'problem-solving', 'result', 'learning'], 'difficulty': 'Medium'},
-            {'text': "How do you handle stress and pressure?", 'expected_keywords': ['stress', 'pressure', 'management', 'techniques', 'deadline'], 'difficulty': 'Easy'},
-            {'text': "What is your greatest professional achievement?", 'expected_keywords': ['achievement', 'accomplishment', 'success', 'result', 'impact'], 'difficulty': 'Medium'},
-            {'text': "How do you work in a team?", 'expected_keywords': ['teamwork', 'collaboration', 'communication', 'contribution', 'support'], 'difficulty': 'Easy'},
-            {'text': "Why do you want to work here?", 'expected_keywords': ['company', 'mission', 'culture', 'opportunity', 'growth'], 'difficulty': 'Easy'},
-            {'text': "What are your salary expectations?", 'expected_keywords': ['salary', 'compensation', 'benefits', 'market', 'value'], 'difficulty': 'Easy'}
+            {'text': "Describe a challenge you faced and how you overcame it.", 'expected_keywords': ['challenge', 'solution', 'problem-solving', 'result', 'learning'], 'difficulty': 'Medium'}
         ],
         'software_engineering': [
             {'text': "Explain the difference between REST and GraphQL APIs.", 'expected_keywords': ['REST', 'GraphQL', 'API', 'endpoints', 'query', 'performance'], 'difficulty': 'Medium'},
-            {'text': "How would you design a scalable microservices architecture?", 'expected_keywords': ['microservices', 'scalability', 'architecture', 'design', 'communication'], 'difficulty': 'Hard'},
-            {'text': "What are the SOLID principles and how do you apply them?", 'expected_keywords': ['SOLID', 'principles', 'design', 'object-oriented', 'patterns'], 'difficulty': 'Hard'}
+            {'text': "How would you design a scalable microservices architecture?", 'expected_keywords': ['microservices', 'scalability', 'architecture', 'design', 'communication'], 'difficulty': 'Hard'}
         ],
         'data_science': [
-            {'text': "Explain the difference between supervised and unsupervised learning.", 'expected_keywords': ['supervised', 'unsupervised', 'labeled', 'unlabeled', 'classification', 'clustering'], 'difficulty': 'Medium'},
-            {'text': "How would you handle missing data in a dataset?", 'expected_keywords': ['missing', 'data', 'imputation', 'deletion', 'analysis'], 'difficulty': 'Medium'},
-            {'text': "What is your approach to feature engineering?", 'expected_keywords': ['features', 'engineering', 'transformation', 'selection', 'creation'], 'difficulty': 'Hard'}
-        ],
-        'product_management': [
-            {'text': "How do you prioritize features for a product?", 'expected_keywords': ['prioritization', 'features', 'roadmap', 'value', 'effort'], 'difficulty': 'Medium'},
-            {'text': "Explain the product development lifecycle.", 'expected_keywords': ['product', 'development', 'lifecycle', 'phases', 'process'], 'difficulty': 'Medium'}
-        ],
-        'marketing': [
-            {'text': "How do you develop a marketing strategy?", 'expected_keywords': ['strategy', 'marketing', 'target', 'audience', 'campaign'], 'difficulty': 'Medium'},
-            {'text': "Explain the concept of digital marketing.", 'expected_keywords': ['digital', 'marketing', 'online', 'social', 'content'], 'difficulty': 'Medium'}
+            {'text': "Explain the difference between supervised and unsupervised learning.", 'expected_keywords': ['supervised', 'unsupervised', 'labeled', 'unlabeled', 'classification', 'clustering'], 'difficulty': 'Medium'}
         ]
     }
     
@@ -170,10 +157,9 @@ def get_questions_by_role(role):
     return formatted_questions
 
 def analyze_answer_simple(question_data, answer_text):
-    """Simple answer analysis"""
     expected_keywords = question_data.get('expected_keywords', [])
     if not expected_keywords:
-        expected_keywords = ['experience', 'skills', 'learning', 'team', 'project', 'challenge', 'solution', 'result']
+        expected_keywords = ['experience', 'skills', 'learning', 'team', 'project']
     
     user_answer_lower = answer_text.lower()
     matched = []
@@ -201,9 +187,9 @@ def analyze_answer_simple(question_data, answer_text):
         missing = [k for k in expected_keywords if k not in matched][:3]
         feedback = f"Good answer. You mentioned {len(matched)} out of {len(expected_keywords)} key points. Consider discussing: {', '.join(missing)}."
     elif score >= 0.4:
-        feedback = f"Decent answer. Try to be more detailed and use more relevant keywords. Key topics: {', '.join(expected_keywords[:4])}."
+        feedback = f"Decent answer. Try to be more detailed. Key topics: {', '.join(expected_keywords[:4])}."
     else:
-        feedback = f"Your answer could be improved. Try to structure it better and include more details. Key topics: {', '.join(expected_keywords[:4])}."
+        feedback = f"Your answer could be improved. Key topics: {', '.join(expected_keywords[:4])}."
     
     return {
         'score': score,
@@ -222,7 +208,7 @@ def home():
     return jsonify({
         "message": "AI Interview Backend Running 🚀",
         "status": "active",
-        "database": "PostgreSQL",
+        "database": "Supabase PostgreSQL",
         "endpoints": [
             "/api/register",
             "/api/login", 
@@ -358,7 +344,6 @@ def analyze_answer():
                 audio_quality = {'quality_score': 0.5, 'feedback': str(e), 'is_good': False}
         
         analysis = analyze_answer_simple(question_data, answer_text)
-        clarity_score, clarity_feedback = 0.7, "Moderate clarity"
         
         return jsonify({
             "transcript": answer_text,
@@ -367,8 +352,8 @@ def analyze_answer():
             "matched_keywords": analysis['matched_keywords'],
             "keyword_score": analysis['keyword_score'],
             "confidence_score": analysis['confidence_score'],
-            "clarity_score": clarity_score,
-            "clarity_feedback": clarity_feedback,
+            "clarity_score": 0.7,
+            "clarity_feedback": "Moderate clarity",
             "audio_quality": audio_quality
         })
     except Exception as e:
@@ -493,6 +478,6 @@ if __name__ == '__main__':
     print("=" * 50)
     print("🚀 AI Interview Backend Starting...")
     print(f"📌 Port: {port}")
-    print(f"📌 Database: PostgreSQL")
+    print(f"📌 Database: Supabase PostgreSQL")
     print("=" * 50)
     app.run(debug=False, host='0.0.0.0', port=port)

@@ -1,6 +1,6 @@
 // frontend/src/config.js
 export const API_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://ai-interview-system.vercel.app' 
+  ? 'https://ai-interview-backend.onrender.com'  // Your Render URL
   : 'http://localhost:5000';
 
 export const API_ENDPOINTS = {
@@ -14,10 +14,5 @@ export const API_ENDPOINTS = {
   getSessions: `${API_URL}/api/user-sessions`,
   getSession: (id) => `${API_URL}/api/session/${id}`,
   deleteSession: (id) => `${API_URL}/api/session/${id}`,
-  testMic: `${API_URL}/api/test-mic`,
-  detectFace: `${API_URL}/api/detect-face`,
-  detectEmotion: `${API_URL}/api/detect-emotion`,
-  emotionAnalysis: `${API_URL}/api/emotion-analysis`,
-  resetEmotion: `${API_URL}/api/reset-emotion-session`,
-  roles: `${API_URL}/api/roles`
+  detectFace: `${API_URL}/api/detect-face`
 };
