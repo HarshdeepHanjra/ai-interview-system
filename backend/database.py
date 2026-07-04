@@ -7,6 +7,7 @@ from contextlib import contextmanager
 from dotenv import load_dotenv
 import hashlib
 import logging
+import urllib.parse
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -19,27 +20,40 @@ class Database:
     def init_pool(self):
         """Initialize connection pool with Supabase"""
         try:
-            # Try DATABASE_URL first (with proper encoding)
+            # Get connection string from environment
             database_url = os.getenv('DATABASE_URL')
             
             if database_url:
-                # URL encode the password if it contains special characters
-                # The URL should already be encoded in the environment variable
+                # Parse and reconstruct the URL with proper encoding
+                parsed = urllib.parse.urlparse(database_url)
+                
+                # Reconstruct with properly encoded password
+                # The password should already be encoded in the environment variable
                 self.pool = SimpleConnectionPool(
                     1, 20,
                     dsn=database_url,
-                    sslmode='require'
+                    sslmode='require',
+                    connect_timeout=30
                 )
             else:
                 # Use individual parameters
+                host = os.getenv('DB_HOST', 'localhost')
+                port = os.getenv('DB_PORT', '5432')
+                dbname = os.getenv('DB_NAME', 'postgres')
+                user = os.getenv('DB_USER', 'postgres')
+                password = os.getenv('DB_PASSWORD', '')
+                
+                logger.info(f"Connecting to Supabase at {host}:{port}")
+                
                 self.pool = SimpleConnectionPool(
                     1, 20,
-                    host=os.getenv('DB_HOST', 'localhost'),
-                    port=os.getenv('DB_PORT', '5432'),
-                    database=os.getenv('DB_NAME', 'postgres'),
-                    user=os.getenv('DB_USER', 'postgres'),
-                    password=os.getenv('DB_PASSWORD', ''),
-                    sslmode='require'
+                    host=host,
+                    port=port,
+                    database=dbname,
+                    user=user,
+                    password=password,
+                    sslmode='require',
+                    connect_timeout=30
                 )
             logger.info("Supabase database connection pool created successfully")
         except Exception as e:
