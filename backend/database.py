@@ -7,6 +7,7 @@ from contextlib import contextmanager
 from dotenv import load_dotenv
 import hashlib
 import logging
+import urllib.parse
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -22,8 +23,15 @@ class Database:
             # Get connection string from environment
             database_url = os.getenv('DATABASE_URL')
             
+            # For Supabase, we need to ensure SSL is enabled
             if database_url:
-                # Use DATABASE_URL (recommended for Supabase)
+                # Parse the URL and add sslmode if not present
+                if 'sslmode' not in database_url:
+                    if '?' in database_url:
+                        database_url += '&sslmode=require'
+                    else:
+                        database_url += '?sslmode=require'
+                
                 self.pool = SimpleConnectionPool(
                     1, 20,
                     dsn=database_url,
@@ -37,7 +45,7 @@ class Database:
                     port=os.getenv('DB_PORT', '5432'),
                     database=os.getenv('DB_NAME', 'postgres'),
                     user=os.getenv('DB_USER', 'postgres'),
-                    password=os.getenv('DB_PASSWORD', ''),
+                    password=os.getenv('DB_PASSWORD', '098@Sjsharsh'),
                     sslmode='require'
                 )
             logger.info("Supabase database connection pool created successfully")
@@ -183,6 +191,15 @@ class InterviewSessionDAO:
             ORDER BY created_at DESC
         """
         return db.execute_query(query, (user_id,))
+    
+    @staticmethod
+    def update_session_score(session_id, overall_score, overall_feedback):
+        query = """
+            UPDATE interview_sessions 
+            SET overall_score = %s, overall_feedback = %s
+            WHERE id = %s
+        """
+        return db.execute_query(query, (overall_score, overall_feedback, session_id))
     
     @staticmethod
     def delete_session(session_id):
