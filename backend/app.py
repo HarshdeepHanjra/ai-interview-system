@@ -474,10 +474,15 @@ def detect_face():
         return jsonify({"face_detected": False, "error": str(e)}), 500
 
 if __name__ == '__main__':
-    port = int(os.getenv('PORT', 5000))
+    # Use PORT from environment variable (Render uses 10000)
+    port = int(os.getenv('PORT', 10000))
+    debug = os.getenv('DEBUG', 'False').lower() == 'true'
+    
     print("=" * 50)
     print("🚀 AI Interview Backend Starting...")
     print(f"📌 Port: {port}")
+    print(f"📌 Debug: {debug}")
     print(f"📌 Database: Supabase PostgreSQL")
     print("=" * 50)
-    app.run(debug=False, host='0.0.0.0', port=port)
+    
+    app.run(debug=debug, host='0.0.0.0', port=port)

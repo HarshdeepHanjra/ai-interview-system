@@ -6,10 +6,10 @@ services:
     startCommand: gunicorn app:app
     envVars:
       - key: DATABASE_URL
-        value: postgresql://postgres:098@Sjsharsh@db.nrgjivklpahniyweimrj.supabase.co:5432/postgres?sslmode=require
+        value: postgresql://postgres:098%40Sjsharsh@db.nrgjivklpahniyweimrj.supabase.co:5432/postgres?sslmode=require
       - key: SECRET_KEY
         value: your-secret-key-change-this-in-production
       - key: DEBUG
         value: false
       - key: PORT
-        value: 5000
+        value: 10000
