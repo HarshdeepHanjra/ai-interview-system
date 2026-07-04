@@ -19,17 +19,19 @@ class Database:
     def init_pool(self):
         """Initialize connection pool with Supabase"""
         try:
-            # Get connection string from environment
+            # Try DATABASE_URL first (with proper encoding)
             database_url = os.getenv('DATABASE_URL')
             
             if database_url:
+                # URL encode the password if it contains special characters
+                # The URL should already be encoded in the environment variable
                 self.pool = SimpleConnectionPool(
                     1, 20,
                     dsn=database_url,
                     sslmode='require'
                 )
             else:
-                # Use individual parameters (fallback)
+                # Use individual parameters
                 self.pool = SimpleConnectionPool(
                     1, 20,
                     host=os.getenv('DB_HOST', 'localhost'),
