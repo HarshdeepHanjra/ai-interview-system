@@ -105,7 +105,6 @@ function App() {
   return (
     <Router>
       <div className="app">
-        {/* Navigation Bar */}
         <nav className="navbar">
           <div className="nav-brand">
             <Link to="/" className="brand-link">
@@ -189,7 +188,7 @@ function App() {
             path="/report/:sessionId" 
             element={
               <ProtectedRoute>
-                <Report user={user} apiUrl={API_URL} />
+                <Report apiUrl={API_URL} />
               </ProtectedRoute>
             } 
           />
