@@ -20,42 +20,40 @@ class Database:
     def init_pool(self):
         """Initialize connection pool with Supabase"""
         try:
-            # Get connection string from environment
-            database_url = os.getenv('DATABASE_URL')
+            # Use individual parameters (recommended for Render)
+            host = os.getenv('DB_HOST', 'localhost')
+            port = os.getenv('DB_PORT', '5432')
+            dbname = os.getenv('DB_NAME', 'postgres')
+            user = os.getenv('DB_USER', 'postgres')
+            password = os.getenv('DB_PASSWORD', '')
             
-            if database_url:
-                # Parse and reconstruct the URL with proper encoding
-                parsed = urllib.parse.urlparse(database_url)
-                
-                # Reconstruct with properly encoded password
-                # The password should already be encoded in the environment variable
-                self.pool = SimpleConnectionPool(
-                    1, 20,
-                    dsn=database_url,
-                    sslmode='require',
-                    connect_timeout=30
-                )
-            else:
-                # Use individual parameters
-                host = os.getenv('DB_HOST', 'localhost')
-                port = os.getenv('DB_PORT', '5432')
-                dbname = os.getenv('DB_NAME', 'postgres')
-                user = os.getenv('DB_USER', 'postgres')
-                password = os.getenv('DB_PASSWORD', '')
-                
-                logger.info(f"Connecting to Supabase at {host}:{port}")
-                
-                self.pool = SimpleConnectionPool(
-                    1, 20,
-                    host=host,
-                    port=port,
-                    database=dbname,
-                    user=user,
-                    password=password,
-                    sslmode='require',
-                    connect_timeout=30
-                )
+            logger.info(f"Connecting to Supabase at {host}:{port}")
+            logger.info(f"Database: {dbname}, User: {user}")
+            
+            # Create connection pool
+            self.pool = SimpleConnectionPool(
+                1, 20,
+                host=host,
+                port=port,
+                database=dbname,
+                user=user,
+                password=password,
+                sslmode='require',
+                connect_timeout=30,
+                keepalives=1,
+                keepalives_idle=30,
+                keepalives_interval=10,
+                keepalives_count=5
+            )
             logger.info("Supabase database connection pool created successfully")
+            
+            # Test connection
+            with self.get_connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT version();")
+                    version = cur.fetchone()
+                    logger.info(f"Connected to: {version[0]}")
+                    
         except Exception as e:
             logger.error(f"Failed to create database connection pool: {e}")
             raise
