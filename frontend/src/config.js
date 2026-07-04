@@ -1,6 +1,6 @@
 // frontend/src/config.js
 export const API_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://ai-interview-backend.onrender.com'  // Your Render URL
+  ? 'https://ai-interview-backend-pwb6.onrender.com'  // Your Render backend URL
   : 'http://localhost:5000';
 
 export const API_ENDPOINTS = {

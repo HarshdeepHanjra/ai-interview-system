@@ -27,19 +27,21 @@ app.config.update(
     PERMANENT_SESSION_LIFETIME=timedelta(days=7)
 )
 
-# CORS Configuration for Vercel + Render
+# CORS Configuration - Allow all Vercel URLs and localhost
 CORS(app, 
      supports_credentials=True, 
      origins=[
          'http://localhost:3000',
          'http://localhost:5000',
+         'https://ai-interview-system-one-wheat.vercel.app',  # Your actual Vercel URL
          'https://ai-interview-frontend.vercel.app',
          'https://ai-interview-system.vercel.app',
          'https://*.vercel.app',
          'https://*.onrender.com'
      ],
-     allow_headers=['Content-Type', 'Authorization', 'Accept'],
-     methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'])
+     allow_headers=['Content-Type', 'Authorization', 'Accept', 'X-Requested-With'],
+     methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+     expose_headers=['Content-Type', 'Authorization'])
 
 # Import database modules
 from database import db, UserDAO, InterviewSessionDAO, QuestionResponseDAO
@@ -218,8 +220,11 @@ def home():
         ]
     })
 
-@app.route('/api/register', methods=['POST'])
+@app.route('/api/register', methods=['POST', 'OPTIONS'])
 def register():
+    if request.method == 'OPTIONS':
+        return '', 200
+    
     try:
         data = request.json
         if not data:
@@ -250,8 +255,11 @@ def register():
         logger.error(f"Registration error: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
 
-@app.route('/api/login', methods=['POST'])
+@app.route('/api/login', methods=['POST', 'OPTIONS'])
 def login():
+    if request.method == 'OPTIONS':
+        return '', 200
+    
     try:
         data = request.json
         if not data:
@@ -278,13 +286,18 @@ def login():
         logger.error(f"Login error: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
 
-@app.route('/api/logout', methods=['POST'])
+@app.route('/api/logout', methods=['POST', 'OPTIONS'])
 def logout():
+    if request.method == 'OPTIONS':
+        return '', 200
     session.clear()
     return jsonify({"success": True})
 
-@app.route('/api/check-auth', methods=['GET'])
+@app.route('/api/check-auth', methods=['GET', 'OPTIONS'])
 def check_auth():
+    if request.method == 'OPTIONS':
+        return '', 200
+    
     if 'user_id' in session:
         return jsonify({
             "authenticated": True, 
@@ -293,8 +306,11 @@ def check_auth():
         })
     return jsonify({"authenticated": False})
 
-@app.route('/api/roles', methods=['GET'])
+@app.route('/api/roles', methods=['GET', 'OPTIONS'])
 def get_roles():
+    if request.method == 'OPTIONS':
+        return '', 200
+    
     try:
         roles = get_all_roles()
         return jsonify({"roles": roles})
@@ -302,8 +318,11 @@ def get_roles():
         logger.error(f"Error fetching roles: {e}")
         return jsonify({"error": str(e)}), 500
 
-@app.route('/api/questions', methods=['POST'])
+@app.route('/api/questions', methods=['POST', 'OPTIONS'])
 def get_questions():
+    if request.method == 'OPTIONS':
+        return '', 200
+    
     try:
         data = request.json
         role = data.get('role', 'general')
@@ -317,8 +336,11 @@ def get_questions():
         logger.error(f"Error fetching questions: {e}")
         return jsonify({"error": str(e)}), 500
 
-@app.route('/api/analyze-answer', methods=['POST'])
+@app.route('/api/analyze-answer', methods=['POST', 'OPTIONS'])
 def analyze_answer():
+    if request.method == 'OPTIONS':
+        return '', 200
+    
     try:
         data = request.json
         if not data:
@@ -360,8 +382,11 @@ def analyze_answer():
         logger.error(f"Answer analysis error: {e}")
         return jsonify({"error": str(e)}), 500
 
-@app.route('/api/save-interview', methods=['POST'])
+@app.route('/api/save-interview', methods=['POST', 'OPTIONS'])
 def save_interview():
+    if request.method == 'OPTIONS':
+        return '', 200
+    
     try:
         data = request.json
         user_id = session.get('user_id')
@@ -398,8 +423,11 @@ def save_interview():
         logger.error(f"Save interview error: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
 
-@app.route('/api/session/<int:session_id>', methods=['GET'])
+@app.route('/api/session/<int:session_id>', methods=['GET', 'OPTIONS'])
 def get_session(session_id):
+    if request.method == 'OPTIONS':
+        return '', 200
+    
     try:
         user_id = session.get('user_id')
         if not user_id:
@@ -414,8 +442,11 @@ def get_session(session_id):
         logger.error(f"Get session error: {e}")
         return jsonify({"error": str(e)}), 500
 
-@app.route('/api/user-sessions', methods=['GET'])
+@app.route('/api/user-sessions', methods=['GET', 'OPTIONS'])
 def user_sessions():
+    if request.method == 'OPTIONS':
+        return '', 200
+    
     try:
         user_id = session.get('user_id')
         if not user_id:
@@ -438,8 +469,11 @@ def user_sessions():
         logger.error(f"User sessions error: {e}")
         return jsonify({"error": str(e)}), 500
 
-@app.route('/api/session/<int:session_id>', methods=['DELETE'])
+@app.route('/api/session/<int:session_id>', methods=['DELETE', 'OPTIONS'])
 def delete_session(session_id):
+    if request.method == 'OPTIONS':
+        return '', 200
+    
     try:
         user_id = session.get('user_id')
         if not user_id:
@@ -459,8 +493,11 @@ def delete_session(session_id):
         logger.error(f"Delete session error: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
 
-@app.route('/api/detect-face', methods=['POST'])
+@app.route('/api/detect-face', methods=['POST', 'OPTIONS'])
 def detect_face():
+    if request.method == 'OPTIONS':
+        return '', 200
+    
     try:
         return jsonify({
             "face_detected": True,
@@ -474,7 +511,6 @@ def detect_face():
         return jsonify({"face_detected": False, "error": str(e)}), 500
 
 if __name__ == '__main__':
-    # Use PORT from environment variable (Render uses 10000)
     port = int(os.getenv('PORT', 10000))
     debug = os.getenv('DEBUG', 'False').lower() == 'true'
     
