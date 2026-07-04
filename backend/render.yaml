@@ -1,0 +1,32 @@
+# backend/render.yaml
+services:
+  - type: web
+    name: ai-interview-backend
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: DB_HOST
+        fromDatabase:
+          name: ai-interview-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: ai-interview-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: ai-interview-db
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: ai-interview-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: ai-interview-db
+          property: password
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: false

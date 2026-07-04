@@ -1,27 +1,47 @@
-// frontend/src/components/Interview.js - Add emotion tracking integration
-
+// frontend/src/components/Interview.js
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Webcam from 'react-webcam';
 import EmotionTracker from './EmotionTracker';
-import { FaMicrophone, FaKeyboard, FaStop, FaPlay, FaCheckCircle, FaExclamationTriangle, FaSpinner } from 'react-icons/fa';
+import { 
+  FaMicrophone, 
+  FaKeyboard, 
+  FaStop, 
+  FaPlay, 
+  FaCheckCircle, 
+  FaExclamationTriangle, 
+  FaSpinner,
+  FaClock,
+  FaChartLine,
+  FaLightbulb,
+  FaPause,
+  FaRedoAlt,
+  FaArrowLeft,
+  FaArrowRight
+} from 'react-icons/fa';
+import './Interview.css'; // Import external CSS
 
 function Interview({ user }) {
   const [questions, setQuestions] = useState([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const [answers, setAnswers] = useState([]);
   const [analysisResults, setAnalysisResults] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [faceScore, setFaceScore] = useState(0);
   const [recordingTime, setRecordingTime] = useState(0);
   const [audioQuality, setAudioQuality] = useState(null);
   const [useTextInput, setUseTextInput] = useState(false);
   const [textAnswer, setTextAnswer] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showTextInput, setShowTextInput] = useState(false);
   const [currentEmotion, setCurrentEmotion] = useState(null);
   const [emotionReport, setEmotionReport] = useState(null);
+  const [showTips, setShowTips] = useState(true);
+  const [elapsedTime, setElapsedTime] = useState(0);
+  const [questionTimer, setQuestionTimer] = useState(0);
+  const [loadingQuestions, setLoadingQuestions] = useState(true);
   
   const webcamRef = useRef(null);
   const mediaRecorderRef = useRef(null);
@@ -33,64 +53,85 @@ function Interview({ user }) {
   const selectedRole = location.state?.selectedRole || 'general';
   const micSkipped = location.state?.micSkipped || false;
 
-  useEffect(() => {
-    if (micSkipped) {
-      setUseTextInput(true);
-      setShowTextInput(true);
-    }
-  }, [micSkipped]);
-
+  // Load questions when component mounts
   useEffect(() => {
     loadQuestions();
     const interval = setInterval(detectFace, 1000);
     return () => clearInterval(interval);
   }, []);
 
+  // Timer for total interview time
   useEffect(() => {
-    if (isRecording) {
+    if (!loading && questions.length > 0) {
+      const timer = setInterval(() => {
+        setElapsedTime(prev => prev + 1);
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [loading, questions]);
+
+  // Question timer
+  useEffect(() => {
+    if (isRecording && !isPaused) {
       timerRef.current = setInterval(() => {
         setRecordingTime(prev => prev + 1);
+        setQuestionTimer(prev => prev + 1);
       }, 1000);
     } else {
       if (timerRef.current) clearInterval(timerRef.current);
-      setRecordingTime(0);
     }
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [isRecording]);
+  }, [isRecording, isPaused]);
 
   const loadQuestions = async () => {
+    setLoadingQuestions(true);
+    setError(null);
     try {
+      console.log('Loading questions for role:', selectedRole);
       const response = await fetch('http://localhost:5000/api/questions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role: selectedRole })
       });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
-      setQuestions(data.questions);
-      setLoading(false);
+      console.log('Questions loaded:', data);
+      
+      if (data.questions && data.questions.length > 0) {
+        setQuestions(data.questions);
+      } else {
+        setError('No questions available for this role');
+      }
     } catch (error) {
       console.error('Error loading questions:', error);
+      setError('Failed to load questions. Please try again.');
+    } finally {
+      setLoadingQuestions(false);
       setLoading(false);
     }
   };
 
   const detectFace = async () => {
     if (webcamRef.current) {
-      const imageSrc = webcamRef.current.getScreenshot();
-      if (imageSrc) {
-        try {
+      try {
+        const imageSrc = webcamRef.current.getScreenshot();
+        if (imageSrc) {
           const response = await fetch('http://localhost:5000/api/detect-face', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ image: imageSrc })
           });
           const data = await response.json();
-          setFaceScore(data.eye_contact_score);
-        } catch (error) {
-          console.error('Face detection error:', error);
+          setFaceScore(data.eye_contact_score || 0);
         }
+      } catch (error) {
+        console.error('Face detection error:', error);
       }
     }
   };
@@ -106,7 +147,9 @@ function Interview({ user }) {
       audioChunksRef.current = [];
       
       mediaRecorderRef.current.ondataavailable = (event) => {
-        audioChunksRef.current.push(event.data);
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
       };
       
       mediaRecorderRef.current.onstop = async () => {
@@ -121,11 +164,25 @@ function Interview({ user }) {
       
       mediaRecorderRef.current.start();
       setIsRecording(true);
+      setIsPaused(false);
     } catch (error) {
       console.error('Error starting recording:', error);
       alert('Could not access microphone. Please check permissions or switch to text input.');
       setUseTextInput(true);
-      setShowTextInput(true);
+    }
+  };
+
+  const pauseRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.pause();
+      setIsPaused(true);
+    }
+  };
+
+  const resumeRecording = () => {
+    if (mediaRecorderRef.current && isRecording && isPaused) {
+      mediaRecorderRef.current.resume();
+      setIsPaused(false);
     }
   };
 
@@ -133,6 +190,7 @@ function Interview({ user }) {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
+      setIsPaused(false);
       if (mediaRecorderRef.current.stream) {
         mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
       }
@@ -157,8 +215,7 @@ function Interview({ user }) {
       setAnswers([...answers, { 
         question: currentQuestion.text, 
         answer: result.transcript, 
-        score: result.score,
-        emotion: currentEmotion
+        score: result.score
       }]);
       setAnalysisResults([...analysisResults, result]);
       
@@ -201,8 +258,7 @@ function Interview({ user }) {
       setAnswers([...answers, { 
         question: currentQuestion.text, 
         answer: textAnswer, 
-        score: result.score,
-        emotion: currentEmotion
+        score: result.score
       }]);
       setAnalysisResults([...analysisResults, result]);
       
@@ -222,28 +278,12 @@ function Interview({ user }) {
   };
 
   const toggleInputMode = () => {
-    if (useTextInput) {
-      setUseTextInput(false);
-      setShowTextInput(false);
-    } else {
-      setUseTextInput(true);
-      setShowTextInput(true);
-    }
+    setUseTextInput(!useTextInput);
   };
 
   const finishInterview = async () => {
-    // Get emotion analysis report
-    let emotionAnalysis = {};
-    try {
-      const emotionResponse = await fetch('http://localhost:5000/api/emotion-analysis');
-      emotionAnalysis = await emotionResponse.json();
-      setEmotionReport(emotionAnalysis);
-    } catch (error) {
-      console.error('Error fetching emotion analysis:', error);
-    }
-    
-    const overallScore = analysisResults.reduce((sum, r) => sum + r.score, 0) / analysisResults.length * 100;
-    const overallFeedback = analysisResults.map(r => r.feedback).join('\n\n');
+    const overallScore = analysisResults.reduce((sum, r) => sum + (r.score || 0), 0) / analysisResults.length * 100;
+    const overallFeedback = analysisResults.map(r => r.feedback || '').join('\n\n');
     const transcript = analysisResults.map((r, idx) => `Q${idx + 1}: ${answers[idx]?.answer || ''}\nScore: ${r.score}`).join('\n\n');
     
     const questionsData = answers.map((ans, idx) => ({
@@ -251,9 +291,12 @@ function Interview({ user }) {
       answer: ans.answer,
       score: ans.score,
       feedback: analysisResults[idx]?.feedback || '',
-      confidence: analysisResults[idx]?.confidence_score || 0,
-      clarity: analysisResults[idx]?.clarity_score || 0,
-      emotion: ans.emotion?.emotion || 'Neutral'
+      confidence_score: analysisResults[idx]?.confidence_score || 0,
+      clarity_score: analysisResults[idx]?.clarity_score || 0,
+      keyword_score: analysisResults[idx]?.keyword_score || 0,
+      matched_keywords: analysisResults[idx]?.matched_keywords || [],
+      emotion: ans.emotion?.emotion || 'Neutral',
+      time_taken: ans.timeTaken || 0
     }));
     
     const avgAudioQuality = analysisResults.reduce((sum, r) => sum + (r.audio_quality?.quality_score || 0.8), 0) / analysisResults.length;
@@ -271,12 +314,14 @@ function Interview({ user }) {
           audio_quality: useTextInput ? 0.8 : avgAudioQuality,
           camera_score: faceScore,
           questions_data: questionsData,
-          emotion_analysis: emotionAnalysis
+          total_time: elapsedTime
         })
       });
       const data = await response.json();
       if (data.success) {
-        navigate(`/report/${data.session_id}`, { state: { emotionAnalysis } });
+        navigate(`/report/${data.session_id}`);
+      } else {
+        alert('Error saving interview: ' + data.message);
       }
     } catch (error) {
       console.error('Save error:', error);
@@ -284,20 +329,47 @@ function Interview({ user }) {
     }
   };
 
-  if (loading) {
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Loading state
+  if (loadingQuestions) {
     return (
       <div className="loading-container">
         <FaSpinner className="spin large" />
-        <p>Loading questions...</p>
+        <h3>Loading Questions...</h3>
+        <p>Please wait while we prepare your interview</p>
       </div>
     );
   }
 
-  if (!questions.length) {
+  // Error state
+  if (error) {
     return (
       <div className="error-container">
-        <FaExclamationTriangle />
-        <p>No questions available for this role.</p>
+        <FaExclamationTriangle className="error-icon" />
+        <h3>Error Loading Questions</h3>
+        <p>{error}</p>
+        <button onClick={() => navigate('/device-check')} className="btn-primary">
+          Go Back
+        </button>
+        <button onClick={loadQuestions} className="btn-secondary" style={{ marginLeft: '1rem' }}>
+          <FaRedoAlt /> Try Again
+        </button>
+      </div>
+    );
+  }
+
+  // No questions state
+  if (!questions || questions.length === 0) {
+    return (
+      <div className="error-container">
+        <FaExclamationTriangle className="error-icon" />
+        <h3>No Questions Available</h3>
+        <p>No questions found for the selected role. Please try another role.</p>
         <button onClick={() => navigate('/device-check')} className="btn-primary">
           Go Back
         </button>
@@ -321,20 +393,21 @@ function Interview({ user }) {
           </div>
         </div>
         <div className="header-stats">
-          <div className="eye-contact-score">
-            <span>👁️ Eye Contact</span>
-            <div className="score-value">{Math.round(faceScore * 100)}%</div>
+          <div className="header-stat">
+            <FaClock className="stat-icon" />
+            <span>{formatTime(elapsedTime)}</span>
           </div>
-          {!useTextInput && (
-            <div className="input-mode-indicator">
-              <FaMicrophone /> Voice Mode
-            </div>
-          )}
-          {useTextInput && (
-            <div className="input-mode-indicator text-mode">
-              <FaKeyboard /> Text Mode
-            </div>
-          )}
+          <div className="header-stat">
+            <FaChartLine className="stat-icon" />
+            <span>{Math.round(faceScore * 100)}% Eye Contact</span>
+          </div>
+          <div className="header-stat input-mode">
+            {!useTextInput ? (
+              <><FaMicrophone /> Voice</>
+            ) : (
+              <><FaKeyboard /> Text</>
+            )}
+          </div>
         </div>
       </div>
       
@@ -348,27 +421,41 @@ function Interview({ user }) {
           />
           <EmotionTracker isActive={true} onEmotionUpdate={handleEmotionUpdate} />
           {isRecording && (
-            <div className="recording-indicator">
+            <div className={`recording-indicator ${isPaused ? 'paused' : ''}`}>
               <span className="recording-dot"></span>
-              Recording... {recordingTime}s
+              {isPaused ? '⏸️ Paused' : '🔴 Recording...'} {recordingTime}s
             </div>
           )}
+          <div className="camera-overlay-stats">
+            <div className="overlay-stat">
+              <span>Eye Contact</span>
+              <div className="overlay-progress">
+                <div className="overlay-fill" style={{ width: `${faceScore * 100}%` }} />
+              </div>
+            </div>
+          </div>
         </div>
         
         <div className="question-area">
           <div className="current-question">
             <div className="question-header">
-              <span className="difficulty-badge">{currentQuestion.difficulty || 'Medium'}</span>
-              {!useTextInput && !micSkipped && (
+              <div className="question-meta">
+                <span className="difficulty-badge">{currentQuestion.difficulty || 'Medium'}</span>
+                <span className="time-badge">⏱️ {formatTime(questionTimer)}</span>
+              </div>
+              <div className="question-actions">
                 <button onClick={toggleInputMode} className="switch-mode-btn">
-                  <FaKeyboard /> Switch to Text
+                  {!useTextInput ? <FaKeyboard /> : <FaMicrophone />}
+                  {!useTextInput ? ' Text' : ' Voice'}
                 </button>
-              )}
-              {useTextInput && (
-                <button onClick={toggleInputMode} className="switch-mode-btn">
-                  <FaMicrophone /> Switch to Voice
+                <button 
+                  onClick={() => setShowTips(!showTips)} 
+                  className="tips-toggle-btn"
+                  title="Toggle Tips"
+                >
+                  <FaLightbulb />
                 </button>
-              )}
+              </div>
             </div>
             <h3>{currentQuestion.text}</h3>
             {currentQuestion.expected_keywords && (
@@ -376,7 +463,9 @@ function Interview({ user }) {
                 <strong>Key topics to cover:</strong>
                 <div className="keywords-list">
                   {currentQuestion.expected_keywords.slice(0, 5).map((keyword, idx) => (
-                    <span key={idx} className="keyword-tag">{keyword}</span>
+                    <span key={idx} className="keyword-tag">
+                      {keyword}
+                    </span>
                   ))}
                 </div>
               </div>
@@ -385,15 +474,28 @@ function Interview({ user }) {
           
           {!useTextInput ? (
             <div className="recording-controls">
-              {!isRecording ? (
-                <button onClick={startRecording} disabled={isSubmitting} className="btn-record">
-                  <FaPlay /> Start Answering
-                </button>
-              ) : (
-                <button onClick={stopRecording} className="btn-stop">
-                  <FaStop /> Stop Recording
-                </button>
-              )}
+              <div className="recording-buttons">
+                {!isRecording ? (
+                  <button onClick={startRecording} disabled={isSubmitting} className="btn-record">
+                    <FaPlay /> Start Answering
+                  </button>
+                ) : (
+                  <>
+                    {!isPaused ? (
+                      <button onClick={pauseRecording} className="btn-pause">
+                        <FaPause /> Pause
+                      </button>
+                    ) : (
+                      <button onClick={resumeRecording} className="btn-resume">
+                        <FaPlay /> Resume
+                      </button>
+                    )}
+                    <button onClick={stopRecording} className="btn-stop">
+                      <FaStop /> Stop
+                    </button>
+                  </>
+                )}
+              </div>
               
               {audioQuality && !isRecording && (
                 <div className={`audio-quality ${audioQuality.is_good ? 'good' : 'poor'}`}>
@@ -412,8 +514,9 @@ function Interview({ user }) {
                   className="answer-textarea"
                   disabled={isSubmitting}
                 />
-                <div className="word-count">
-                  Words: {textAnswer.trim().split(/\s+/).filter(w => w.length > 0).length}
+                <div className="text-input-stats">
+                  <span>Words: {textAnswer.trim().split(/\s+/).filter(w => w.length > 0).length}</span>
+                  <span>Characters: {textAnswer.length}</span>
                 </div>
               </div>
               <button 
@@ -452,8 +555,29 @@ function Interview({ user }) {
                       {Math.round(analysisResults[currentQuestionIndex - 1].clarity_score * 100)}%
                     </div>
                   </div>
+                  {analysisResults[currentQuestionIndex - 1].matched_keywords && (
+                    <div className="score-item">
+                      <span>Keywords</span>
+                      <div className="keywords-matched">
+                        {analysisResults[currentQuestionIndex - 1].matched_keywords.length} matched
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
+            </div>
+          )}
+
+          {showTips && (
+            <div className="tips-box">
+              <h4>💡 Tips for This Question</h4>
+              <ul>
+                <li>Speak clearly and at a moderate pace</li>
+                <li>Use specific examples from your experience</li>
+                <li>Structure your answer: Situation, Task, Action, Result</li>
+                <li>Include the key topics shown above</li>
+                <li>Maintain eye contact with the camera</li>
+              </ul>
             </div>
           )}
         </div>

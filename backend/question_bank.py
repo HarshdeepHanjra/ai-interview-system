@@ -1,4 +1,4 @@
-# Complete question bank by role/category
+# question_bank.py - Complete question bank by role/category
 
 QUESTION_BANK = {
     'data_science': {
@@ -166,6 +166,18 @@ QUESTION_BANK = {
                 'text': 'Describe your product development process from idea to launch.',
                 'expected_keywords': ['discovery', 'definition', 'design', 'development', 'testing', 'launch', 'iteration', 'feedback'],
                 'difficulty': 'Medium'
+            },
+            {
+                'id': 6,
+                'text': 'How do you define product-market fit and how do you measure it?',
+                'expected_keywords': ['customer needs', 'value proposition', 'adoption', 'retention', 'satisfaction', 'market demand'],
+                'difficulty': 'Hard'
+            },
+            {
+                'id': 7,
+                'text': 'What is your approach to gathering user feedback and incorporating it into the product?',
+                'expected_keywords': ['surveys', 'interviews', 'analytics', 'usability testing', 'feedback loops', 'iteration'],
+                'difficulty': 'Medium'
             }
         ]
     },
@@ -201,6 +213,12 @@ QUESTION_BANK = {
                 'id': 5,
                 'text': 'Describe a successful marketing campaign you managed.',
                 'expected_keywords': ['strategy', 'execution', 'results', 'metrics', 'learnings', 'optimization', 'roi'],
+                'difficulty': 'Easy'
+            },
+            {
+                'id': 6,
+                'text': 'How do you stay updated with the latest marketing trends and technologies?',
+                'expected_keywords': ['blogs', 'webinars', 'courses', 'networking', 'conferences', 'social media', 'research'],
                 'difficulty': 'Easy'
             }
         ]
@@ -256,62 +274,255 @@ QUESTION_BANK = {
                 'text': 'How do you stay updated with industry trends and new technologies?',
                 'expected_keywords': ['learning', 'courses', 'blogs', 'conferences', 'networking', 'continuous improvement'],
                 'difficulty': 'Easy'
+            },
+            {
+                'id': 9,
+                'text': 'What motivates you to perform at your best?',
+                'expected_keywords': ['challenges', 'recognition', 'impact', 'growth', 'purpose', 'achievement', 'team'],
+                'difficulty': 'Easy'
+            },
+            {
+                'id': 10,
+                'text': 'How do you handle feedback and criticism?',
+                'expected_keywords': ['open-minded', 'learning', 'improvement', 'constructive', 'adapt', 'growth mindset'],
+                'difficulty': 'Easy'
             }
         ]
     }
 }
 
 def get_questions_by_role(role):
-    """Get questions for a specific role"""
-    if role in QUESTION_BANK:
-        return QUESTION_BANK[role]['questions']
+    """
+    Get questions for a specific role
+    
+    Args:
+        role (str): The role identifier (e.g., 'data_science', 'software_engineering')
+    
+    Returns:
+        list: List of question objects for the specified role
+    """
+    if not role:
+        return QUESTION_BANK['general']['questions']
+    
+    role_lower = role.lower()
+    if role_lower in QUESTION_BANK:
+        return QUESTION_BANK[role_lower]['questions']
     return QUESTION_BANK['general']['questions']
 
 def get_all_roles():
-    """Get all available roles"""
-    return {key: {'name': value['name'], 'icon': value['icon']} for key, value in QUESTION_BANK.items()}
+    """
+    Get all available roles with their names and icons
+    
+    Returns:
+        dict: Dictionary of roles with name and icon
+    """
+    return {
+        key: {
+            'name': value['name'],
+            'icon': value['icon']
+        } 
+        for key, value in QUESTION_BANK.items()
+    }
+
+def get_role_info(role):
+    """
+    Get detailed information about a specific role
+    
+    Args:
+        role (str): The role identifier
+    
+    Returns:
+        dict: Role information including name, icon, and question count
+    """
+    if role in QUESTION_BANK:
+        return {
+            'name': QUESTION_BANK[role]['name'],
+            'icon': QUESTION_BANK[role]['icon'],
+            'question_count': len(QUESTION_BANK[role]['questions'])
+        }
+    return None
 
 def analyze_answer_simple(question_data, user_answer):
-    """Simple keyword-based answer analysis without OpenAI"""
+    """
+    Simple keyword-based answer analysis without OpenAI
+    
+    Args:
+        question_data (dict): The question data containing expected_keywords
+        user_answer (str): The user's answer text
+    
+    Returns:
+        dict: Analysis results including score, feedback, and matched keywords
+    """
+    # Input validation
+    if not user_answer or not isinstance(user_answer, str):
+        return {
+            'score': 0.0,
+            'feedback': 'No answer provided. Please provide a detailed response.',
+            'matched_keywords': [],
+            'keyword_score': 0.0,
+            'confidence_score': 0.0,
+            'clarity_score': 0.0
+        }
+    
+    # Get expected keywords from question data
     expected_keywords = question_data.get('expected_keywords', [])
+    if not expected_keywords:
+        expected_keywords = ['experience', 'skills', 'knowledge', 'ability', 'achievement']
+    
+    # Normalize user answer
     user_answer_lower = user_answer.lower()
+    user_words = user_answer_lower.split()
     
     # Count keyword matches
     matched_keywords = []
     for keyword in expected_keywords:
-        if keyword.lower() in user_answer_lower:
+        keyword_lower = keyword.lower()
+        # Check if keyword appears as a whole word or part of a word
+        if keyword_lower in user_answer_lower:
+            matched_keywords.append(keyword)
+        # Check for partial matches (e.g., "class" matches "classification")
+        elif any(keyword_lower in word or word in keyword_lower for word in user_words):
             matched_keywords.append(keyword)
     
+    # Calculate keyword score
     keyword_score = len(matched_keywords) / len(expected_keywords) if expected_keywords else 0.5
+    keyword_score = min(1.0, keyword_score)
     
-    # Length-based score (minimum 20 words, max 200)
-    word_count = len(user_answer.split())
-    length_score = min(1.0, word_count / 100)
-    if word_count < 20:
-        length_score = word_count / 20 * 0.5  # Penalty for very short answers
-    
-    # Calculate confidence based on answer length and keyword matches
-    confidence_score = (keyword_score * 0.6 + length_score * 0.4)
-    
-    # Generate feedback based on score
-    if keyword_score > 0.7:
-        feedback = f"Excellent answer! You covered key concepts including: {', '.join(matched_keywords[:3])}. Great job!"
-    elif keyword_score > 0.4:
-        missing = [k for k in expected_keywords if k not in matched_keywords][:3]
-        feedback = f"Good answer. You mentioned {len(matched_keywords)} out of {len(expected_keywords)} key points. Consider discussing: {', '.join(missing)}."
+    # Length-based score (minimum 20 words, optimal 100-150 words)
+    word_count = len(user_words)
+    if word_count >= 100:
+        length_score = 1.0
+    elif word_count >= 50:
+        length_score = 0.8
+    elif word_count >= 20:
+        length_score = 0.5 + (word_count - 20) / 30 * 0.3
     else:
-        feedback = f"Your answer could be improved. Key topics to cover: {', '.join(expected_keywords[:4])}. Try to be more specific and detailed."
+        length_score = word_count / 20 * 0.3
     
+    # Calculate confidence score
+    confidence_score = (keyword_score * 0.6 + length_score * 0.4)
+    confidence_score = min(1.0, confidence_score)
+    
+    # Calculate clarity score
+    # Check for structure indicators
+    structure_indicators = ['first', 'second', 'third', 'finally', 'conclusion', 'summary', 'for example', 'such as']
+    structure_score = sum(1 for indicator in structure_indicators if indicator in user_answer_lower) / len(structure_indicators)
+    structure_score = min(0.5, structure_score)  # Max 0.5 bonus
+    
+    clarity_score = min(1.0, length_score + structure_score)
+    
+    # Generate feedback
+    if keyword_score > 0.7:
+        matched_list = ', '.join(matched_keywords[:4])
+        feedback = f"Excellent answer! You covered key concepts including: {matched_list}. Great job demonstrating your knowledge!"
+    elif keyword_score > 0.4:
+        matched_list = ', '.join(matched_keywords[:3])
+        missing = [k for k in expected_keywords if k not in matched_keywords][:3]
+        feedback = f"Good answer. You mentioned {len(matched_keywords)} out of {len(expected_keywords)} key points: {matched_list}. Consider discussing: {', '.join(missing)}."
+    else:
+        missing = expected_keywords[:4]
+        feedback = f"Your answer could be improved. Key topics to cover: {', '.join(missing)}. Try to be more specific and detailed in your response."
+    
+    # Add length feedback
     if word_count < 20:
         feedback += " Also, try to provide more detailed answers (aim for 50-100 words)."
+    elif word_count > 200:
+        feedback += " Your answer is quite detailed. Try to be more concise and focus on the key points."
     
+    # Calculate final score
     final_score = (keyword_score * 0.5 + length_score * 0.3 + confidence_score * 0.2)
+    final_score = round(min(1.0, final_score), 2)
     
     return {
-        'score': round(final_score, 2),
+        'score': final_score,
         'feedback': feedback,
         'matched_keywords': matched_keywords,
         'keyword_score': round(keyword_score, 2),
         'confidence_score': round(confidence_score, 2),
-        'clarity_score': round(min(1.0, length_score + 0.2), 2)
+        'clarity_score': round(clarity_score, 2),
+        'word_count': word_count,
+        'question_difficulty': question_data.get('difficulty', 'Medium')
     }
+
+def get_question_count(role=None):
+    """
+    Get total number of questions for a role or all roles
+    
+    Args:
+        role (str, optional): Specific role. If None, returns total for all roles.
+    
+    Returns:
+        int: Number of questions
+    """
+    if role and role in QUESTION_BANK:
+        return len(QUESTION_BANK[role]['questions'])
+    
+    total = 0
+    for value in QUESTION_BANK.values():
+        total += len(value['questions'])
+    return total
+
+def get_random_questions(role, count=5):
+    """
+    Get random questions for a role
+    
+    Args:
+        role (str): The role identifier
+        count (int): Number of questions to return
+    
+    Returns:
+        list: Randomly selected questions
+    """
+    import random
+    
+    questions = get_questions_by_role(role)
+    if len(questions) <= count:
+        return questions
+    return random.sample(questions, count)
+
+def get_questions_by_difficulty(role, difficulty='Medium'):
+    """
+    Get questions for a role filtered by difficulty
+    
+    Args:
+        role (str): The role identifier
+        difficulty (str): Difficulty level (Easy, Medium, Hard)
+    
+    Returns:
+        list: Questions with the specified difficulty
+    """
+    questions = get_questions_by_role(role)
+    return [q for q in questions if q.get('difficulty', 'Medium') == difficulty]
+
+# Export functions for use in other modules
+__all__ = [
+    'QUESTION_BANK',
+    'get_questions_by_role',
+    'get_all_roles',
+    'get_role_info',
+    'analyze_answer_simple',
+    'get_question_count',
+    'get_random_questions',
+    'get_questions_by_difficulty'
+]
+
+# Self-test function for development
+if __name__ == "__main__":
+    # Test the module
+    print("Testing Question Bank Module...")
+    print(f"Available roles: {list(get_all_roles().keys())}")
+    print(f"Total questions: {get_question_count()}")
+    
+    # Test getting questions for a role
+    ds_questions = get_questions_by_role('data_science')
+    print(f"Data Science questions: {len(ds_questions)}")
+    
+    # Test analyzing an answer
+    test_question = ds_questions[0]
+    test_answer = "Supervised learning uses labeled data for classification and regression tasks. For example, spam detection is a classification problem. Unsupervised learning uses unlabeled data for clustering and association tasks. For example, customer segmentation uses clustering."
+    
+    result = analyze_answer_simple(test_question, test_answer)
+    print(f"Analysis result: Score={result['score']}, Keywords matched={len(result['matched_keywords'])}")
+    print(f"Feedback: {result['feedback']}")
+    
+    print("Module loaded successfully! ✅")
