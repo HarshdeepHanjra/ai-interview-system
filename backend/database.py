@@ -7,7 +7,7 @@ from contextlib import contextmanager
 from dotenv import load_dotenv
 import hashlib
 import logging
-import urllib.parse
+import time
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -19,44 +19,69 @@ class Database:
     
     def init_pool(self):
         """Initialize connection pool with Supabase"""
-        try:
-            # Use individual parameters (recommended for Render)
-            host = os.getenv('DB_HOST', 'localhost')
-            port = os.getenv('DB_PORT', '5432')
-            dbname = os.getenv('DB_NAME', 'postgres')
-            user = os.getenv('DB_USER', 'postgres')
-            password = os.getenv('DB_PASSWORD', '')
-            
-            logger.info(f"Connecting to Supabase at {host}:{port}")
-            logger.info(f"Database: {dbname}, User: {user}")
-            
-            # Create connection pool
-            self.pool = SimpleConnectionPool(
-                1, 20,
-                host=host,
-                port=port,
-                database=dbname,
-                user=user,
-                password=password,
-                sslmode='require',
-                connect_timeout=30,
-                keepalives=1,
-                keepalives_idle=30,
-                keepalives_interval=10,
-                keepalives_count=5
-            )
-            logger.info("Supabase database connection pool created successfully")
-            
-            # Test connection
-            with self.get_connection() as conn:
-                with conn.cursor() as cur:
-                    cur.execute("SELECT version();")
-                    version = cur.fetchone()
-                    logger.info(f"Connected to: {version[0]}")
-                    
-        except Exception as e:
-            logger.error(f"Failed to create database connection pool: {e}")
-            raise
+        max_retries = 3
+        retry_delay = 2
+        
+        for attempt in range(max_retries):
+            try:
+                # Use individual parameters
+                host = os.getenv('DB_HOST', 'localhost')
+                port = os.getenv('DB_PORT', '5432')
+                dbname = os.getenv('DB_NAME', 'postgres')
+                user = os.getenv('DB_USER', 'postgres')
+                password = os.getenv('DB_PASSWORD', '')
+                
+                logger.info(f"Connecting to Supabase at {host}:{port}")
+                logger.info(f"Database: {dbname}, User: {user}")
+                
+                # Create connection pool
+                self.pool = SimpleConnectionPool(
+                    1, 20,
+                    host=host,
+                    port=port,
+                    database=dbname,
+                    user=user,
+                    password=password,
+                    sslmode='require',
+                    connect_timeout=30,
+                    keepalives=1,
+                    keepalives_idle=30,
+                    keepalives_interval=10,
+                    keepalives_count=5
+                )
+                logger.info("Supabase database connection pool created successfully")
+                
+                # Test connection
+                with self.get_connection() as conn:
+                    with conn.cursor() as cur:
+                        cur.execute("SELECT version();")
+                        version = cur.fetchone()
+                        logger.info(f"Connected to: {version[0]}")
+                        
+                        # Test if tables exist
+                        cur.execute("""
+                            SELECT EXISTS (
+                                SELECT FROM information_schema.tables 
+                                WHERE table_name = 'users'
+                            )
+                        """)
+                        tables_exist = cur.fetchone()[0]
+                        if tables_exist:
+                            logger.info("Database tables exist ✅")
+                        else:
+                            logger.warning("Tables not found. Please run the SQL schema.")
+                
+                return  # Success, exit retry loop
+                
+            except Exception as e:
+                logger.error(f"Connection attempt {attempt + 1} failed: {e}")
+                if attempt < max_retries - 1:
+                    logger.info(f"Retrying in {retry_delay} seconds...")
+                    time.sleep(retry_delay)
+                    retry_delay *= 2  # Exponential backoff
+                else:
+                    logger.error("All connection attempts failed")
+                    raise
     
     @contextmanager
     def get_connection(self):
