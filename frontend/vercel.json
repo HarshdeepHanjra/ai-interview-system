@@ -5,6 +5,6 @@
   "outputDirectory": "build",
   "framework": "create-react-app",
   "env": {
-    "REACT_APP_API_URL": "https://ai-interview-backend-pwb6.onrender.com"
+    "REACT_APP_API_URL": "https://ai-interview-backend.onrender.com"
   }
 }

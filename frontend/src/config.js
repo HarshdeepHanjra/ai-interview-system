@@ -1,9 +1,15 @@
 // frontend/src/config.js
-// Use environment variable or fallback to Render URL
-export const API_URL = process.env.REACT_APP_API_URL 
-  || (process.env.NODE_ENV === 'production' 
-    ? 'https://ai-interview-backend-pwb6.onrender.com' 
-    : 'http://localhost:5000');
+// Use environment variable for API URL
+const getApiUrl = () => {
+  // For production (Vercel)
+  if (process.env.NODE_ENV === 'production') {
+    return 'https://ai-interview-backend.onrender.com';
+  }
+  // For development (localhost)
+  return 'http://localhost:5000';
+};
+
+export const API_URL = getApiUrl();
 
 export const API_ENDPOINTS = {
   register: `${API_URL}/api/register`,
