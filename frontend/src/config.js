@@ -1,10 +1,16 @@
 // frontend/src/config.js
 // Use environment variable for API URL
 const getApiUrl = () => {
+  // Check if REACT_APP_API_URL is set in environment
+  if (process.env.REACT_APP_API_URL) {
+    return process.env.REACT_APP_API_URL;
+  }
+  
   // For production (Vercel)
   if (process.env.NODE_ENV === 'production') {
-    return 'https://ai-interview-backend-pwb6.onrender.com';  // Your Render backend URL
+    return 'https://ai-interview-backend-pwb6.onrender.com';
   }
+  
   // For development (localhost)
   return 'http://localhost:5000';
 };
@@ -24,3 +30,7 @@ export const API_ENDPOINTS = {
   deleteSession: (id) => `${API_URL}/api/session/${id}`,
   detectFace: `${API_URL}/api/detect-face`
 };
+
+// Log the API URL for debugging
+console.log('🔗 API_URL:', API_URL);
+console.log('🌍 Environment:', process.env.NODE_ENV);

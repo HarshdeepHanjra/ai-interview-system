@@ -1,4 +1,4 @@
-// src/Login.js
+// frontend/src/components/Login.js
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { 
@@ -13,6 +13,7 @@ import {
   Network,
   CheckCircle
 } from 'lucide-react';
+import { API_URL } from '../config';
 
 function Login({ onLogin }) {
   const [formData, setFormData] = useState({ 
@@ -30,7 +31,6 @@ function Login({ onLogin }) {
     const state = window.history.state?.usr;
     if (state?.message) {
       setSuccess(state.message);
-      // Clear the message after 5 seconds
       setTimeout(() => setSuccess(''), 5000);
     }
   }, []);
@@ -38,7 +38,6 @@ function Login({ onLogin }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Validation
     if (!formData.username.trim()) {
       setError('Username is required');
       return;
@@ -53,7 +52,9 @@ function Login({ onLogin }) {
     setSuccess('');
 
     try {
-      const response = await fetch('http://localhost:5000/api/login', {
+      console.log('📡 Sending login request to:', `${API_URL}/api/login`);
+      
+      const response = await fetch(`${API_URL}/api/login`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -67,24 +68,22 @@ function Login({ onLogin }) {
       });
 
       const data = await response.json();
+      console.log('📥 Login response:', data);
       
       if (data.success) {
-        // Call the onLogin callback with user data
         if (onLogin) {
           onLogin({ 
             id: data.user_id, 
             username: data.username 
           });
         }
-        
-        // Navigate to home/dashboard
-        navigate('/');
+        navigate('/dashboard');
       } else {
         setError(data.message || 'Invalid username or password');
       }
     } catch (err) {
-      console.error('Login error:', err);
-      setError('Connection error. Please check your internet connection and try again.');
+      console.error('❌ Login error:', err);
+      setError('Connection error. Please check your internet connection.');
     } finally {
       setLoading(false);
     }
@@ -92,7 +91,7 @@ function Login({ onLogin }) {
 
   return (
     <div className="login-container">
-      {/* Animated Background */}
+      {/* Background animation */}
       <div className="bg-animation">
         <div className="gradient-sphere sphere-1"></div>
         <div className="gradient-sphere sphere-2"></div>
@@ -170,7 +169,6 @@ function Login({ onLogin }) {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="login-form">
-          {/* Username */}
           <div className="form-group">
             <label>Username</label>
             <div className="input-wrapper">
@@ -188,7 +186,6 @@ function Login({ onLogin }) {
             </div>
           </div>
 
-          {/* Password */}
           <div className="form-group">
             <label>Password</label>
             <div className="input-wrapper">
@@ -218,7 +215,6 @@ function Login({ onLogin }) {
             </Link>
           </div>
 
-          {/* Submit Button */}
           <button 
             type="submit" 
             disabled={loading || !formData.username || !formData.password}
@@ -238,19 +234,17 @@ function Login({ onLogin }) {
           </button>
         </form>
 
-        {/* Divider */}
         <div className="divider">
           <span>New to AI Interview?</span>
         </div>
 
-        {/* Register Link */}
         <Link to="/register" className="register-link">
           Create an account
           <ArrowRight size={16} />
         </Link>
       </div>
 
-      {/* Inline Styles - Dark Theme */}
+      {/* Styles */}
       <style>{`
         * {
           margin: 0;
@@ -270,7 +264,6 @@ function Login({ onLogin }) {
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
         }
 
-        /* ===== ANIMATED BACKGROUND ===== */
         .bg-animation {
           position: absolute;
           width: 100%;
@@ -363,7 +356,6 @@ function Login({ onLogin }) {
           100% { transform: translateY(-10vh) scale(1); opacity: 0; }
         }
 
-        /* ===== LOGIN CARD ===== */
         .login-card {
           background: rgba(20, 20, 30, 0.9);
           backdrop-filter: blur(20px);
@@ -387,7 +379,6 @@ function Login({ onLogin }) {
             inset 0 1px 0 rgba(255, 255, 255, 0.05);
         }
 
-        /* ===== BRAND HEADER ===== */
         .brand-header {
           display: flex;
           justify-content: space-between;
@@ -442,7 +433,6 @@ function Login({ onLogin }) {
           gap: 4px;
         }
 
-        /* ===== AUTH HEADER ===== */
         .auth-header {
           margin-bottom: 24px;
         }
@@ -466,7 +456,6 @@ function Login({ onLogin }) {
           margin: 0;
         }
 
-        /* ===== FEATURES ===== */
         .features-row {
           display: flex;
           gap: 10px;
@@ -498,7 +487,6 @@ function Login({ onLogin }) {
           color: #6c5ce7;
         }
 
-        /* ===== SUCCESS MESSAGE ===== */
         .success-message {
           background: rgba(0, 184, 148, 0.1);
           color: #00b894;
@@ -524,7 +512,6 @@ function Login({ onLogin }) {
           }
         }
 
-        /* ===== ERROR MESSAGE ===== */
         .error-message {
           background: rgba(255, 71, 87, 0.1);
           color: #ff6b81;
@@ -545,7 +532,6 @@ function Login({ onLogin }) {
           75% { transform: translateX(5px); }
         }
 
-        /* ===== FORM ===== */
         .login-form {
           display: flex;
           flex-direction: column;
@@ -657,7 +643,6 @@ function Login({ onLogin }) {
           text-decoration: underline;
         }
 
-        /* ===== BUTTON ===== */
         .btn-primary {
           width: 100%;
           padding: 14px;
@@ -734,7 +719,6 @@ function Login({ onLogin }) {
           to { transform: rotate(360deg); }
         }
 
-        /* ===== DIVIDER ===== */
         .divider {
           display: flex;
           align-items: center;
@@ -756,7 +740,6 @@ function Login({ onLogin }) {
           white-space: nowrap;
         }
 
-        /* ===== REGISTER LINK ===== */
         .register-link {
           display: flex;
           align-items: center;
@@ -777,7 +760,6 @@ function Login({ onLogin }) {
           color: #a29bfe;
         }
 
-        /* ===== RESPONSIVE DESIGN ===== */
         @media (max-width: 768px) {
           .login-card {
             padding: 32px 28px;
@@ -893,7 +875,6 @@ function Login({ onLogin }) {
           }
         }
 
-        /* Touch-friendly for mobile */
         @media (hover: none) {
           .feature-item:hover {
             transform: none;
