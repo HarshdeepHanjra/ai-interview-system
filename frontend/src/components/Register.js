@@ -18,6 +18,7 @@ import {
   Cpu,
   Network
 } from 'lucide-react';
+import { API_URL } from '../config';
 
 function Register() {
   const [formData, setFormData] = useState({
@@ -101,16 +102,23 @@ function Register() {
     setError('');
 
     try {
-      const response = await fetch('http://localhost:5000/api/register', {
+      // Use API_URL from config instead of hardcoded localhost
+      const response = await fetch(`${API_URL}/api/register`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        credentials: 'include',
         body: JSON.stringify({
           username: formData.username,
           email: formData.email,
           password: formData.password
         })
       });
+      
       const data = await response.json();
+      
       if (data.success) {
         navigate('/login', { 
           state: { 
@@ -121,6 +129,7 @@ function Register() {
         setError(data.message || 'Registration failed. Please try again.');
       }
     } catch (err) {
+      console.error('Registration error:', err);
       setError('Connection error. Please check your internet connection.');
     } finally {
       setLoading(false);
@@ -206,7 +215,6 @@ function Register() {
               Username
             </label>
             <div className="input-wrapper">
-              {/* <User size={18} className="input-icon" /> */}
               <input
                 type="text"
                 placeholder="Choose a unique username"
@@ -227,7 +235,6 @@ function Register() {
               Email Address
             </label>
             <div className="input-wrapper">
-              {/* <Mail size={18} className="input-icon" /> */}
               <input
                 type="email"
                 placeholder="Enter your email"
@@ -248,7 +255,6 @@ function Register() {
               Password
             </label>
             <div className="input-wrapper">
-              {/* <Lock size={18} className="input-icon" /> */}
               <input
                 type={showPassword ? 'text' : 'password'}
                 placeholder="Create a strong password"
@@ -295,7 +301,6 @@ function Register() {
               Confirm Password
             </label>
             <div className="input-wrapper">
-              {/* <Lock size={18} className="input-icon" /> */}
               <input
                 type={showConfirmPassword ? 'text' : 'password'}
                 placeholder="Confirm your password"
@@ -659,17 +664,9 @@ function Register() {
           align-items: center;
         }
 
-        .input-icon {
-          position: absolute;
-          left: 12px;
-          color: #5a5a6a;
-          pointer-events: none;
-          z-index: 2;
-        }
-
         .form-input {
           width: 100%;
-          padding: 12px 12px 12px 42px;
+          padding: 12px 42px 12px 16px;
           background: rgba(255, 255, 255, 0.05);
           border: 1px solid rgba(255, 255, 255, 0.08);
           border-radius: 12px;
@@ -976,7 +973,7 @@ function Register() {
           }
 
           .form-input {
-            padding: 11px 11px 11px 38px;
+            padding: 11px 38px 11px 16px;
             font-size: 13px;
           }
 
@@ -1018,17 +1015,8 @@ function Register() {
           }
 
           .form-input {
-            padding: 10px 10px 10px 34px;
+            padding: 10px 34px 10px 14px;
             font-size: 12px;
-          }
-
-          .input-icon {
-            left: 10px;
-          }
-
-          .input-icon svg {
-            width: 16px;
-            height: 16px;
           }
 
           .btn-primary {
