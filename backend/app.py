@@ -1,4 +1,4 @@
-# backend/app.py
+# backend/app.py - Complete working version
 from flask import Flask, request, jsonify, session
 from flask_cors import CORS
 import os
@@ -6,7 +6,6 @@ import base64
 import tempfile
 import logging
 from dotenv import load_dotenv
-import traceback
 from datetime import timedelta
 
 load_dotenv()
@@ -28,37 +27,19 @@ app.config.update(
 )
 
 # =============================================
-# CORS CONFIGURATION - SINGLE CLEAN VERSION
+# SIMPLE CORS - ALLOW ALL (FOR TESTING)
 # =============================================
-CORS(
-    app,
-    origins=[
-        "https://ai-interview-system-one-wheat.vercel.app",
-        "https://ai-interview-frontend.vercel.app",
-        "https://ai-interview-system.vercel.app",
-        "http://localhost:3000",
-        "http://localhost:5000",
-        "http://localhost:5173"
-    ],
-    supports_credentials=True,
-    allow_headers=[
-        "Content-Type",
-        "Authorization",
-        "Accept",
-        "X-Requested-With"
-    ],
-    methods=[
-        "GET",
-        "POST",
-        "PUT",
-        "DELETE",
-        "OPTIONS"
-    ],
-    expose_headers=[
-        "Content-Type",
-        "Authorization"
-    ]
-)
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,Accept,X-Requested-With')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    response.headers.add('Access-Control-Allow-Credentials', 'true')
+    return response
+
+@app.route('/api/<path:path>', methods=['OPTIONS'])
+def handle_options(path):
+    return '', 200
 
 # Import database modules
 from database import db, UserDAO, InterviewSessionDAO, QuestionResponseDAO
@@ -237,11 +218,8 @@ def home():
         ]
     })
 
-@app.route('/api/register', methods=['POST', 'OPTIONS'])
+@app.route('/api/register', methods=['POST'])
 def register():
-    if request.method == 'OPTIONS':
-        return '', 200
-    
     try:
         data = request.json
         if not data:
@@ -272,11 +250,8 @@ def register():
         logger.error(f"Registration error: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
 
-@app.route('/api/login', methods=['POST', 'OPTIONS'])
+@app.route('/api/login', methods=['POST'])
 def login():
-    if request.method == 'OPTIONS':
-        return '', 200
-    
     try:
         data = request.json
         if not data:
@@ -303,18 +278,13 @@ def login():
         logger.error(f"Login error: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
 
-@app.route('/api/logout', methods=['POST', 'OPTIONS'])
+@app.route('/api/logout', methods=['POST'])
 def logout():
-    if request.method == 'OPTIONS':
-        return '', 200
     session.clear()
     return jsonify({"success": True})
 
-@app.route('/api/check-auth', methods=['GET', 'OPTIONS'])
+@app.route('/api/check-auth', methods=['GET'])
 def check_auth():
-    if request.method == 'OPTIONS':
-        return '', 200
-    
     if 'user_id' in session:
         return jsonify({
             "authenticated": True, 
@@ -323,11 +293,8 @@ def check_auth():
         })
     return jsonify({"authenticated": False})
 
-@app.route('/api/roles', methods=['GET', 'OPTIONS'])
+@app.route('/api/roles', methods=['GET'])
 def get_roles():
-    if request.method == 'OPTIONS':
-        return '', 200
-    
     try:
         roles = get_all_roles()
         return jsonify({"roles": roles})
@@ -335,11 +302,8 @@ def get_roles():
         logger.error(f"Error fetching roles: {e}")
         return jsonify({"error": str(e)}), 500
 
-@app.route('/api/questions', methods=['POST', 'OPTIONS'])
+@app.route('/api/questions', methods=['POST'])
 def get_questions():
-    if request.method == 'OPTIONS':
-        return '', 200
-    
     try:
         data = request.json
         role = data.get('role', 'general')
@@ -353,11 +317,8 @@ def get_questions():
         logger.error(f"Error fetching questions: {e}")
         return jsonify({"error": str(e)}), 500
 
-@app.route('/api/analyze-answer', methods=['POST', 'OPTIONS'])
+@app.route('/api/analyze-answer', methods=['POST'])
 def analyze_answer():
-    if request.method == 'OPTIONS':
-        return '', 200
-    
     try:
         data = request.json
         if not data:
@@ -399,11 +360,8 @@ def analyze_answer():
         logger.error(f"Answer analysis error: {e}")
         return jsonify({"error": str(e)}), 500
 
-@app.route('/api/save-interview', methods=['POST', 'OPTIONS'])
+@app.route('/api/save-interview', methods=['POST'])
 def save_interview():
-    if request.method == 'OPTIONS':
-        return '', 200
-    
     try:
         data = request.json
         user_id = session.get('user_id')
@@ -440,11 +398,8 @@ def save_interview():
         logger.error(f"Save interview error: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
 
-@app.route('/api/session/<int:session_id>', methods=['GET', 'OPTIONS'])
+@app.route('/api/session/<int:session_id>', methods=['GET'])
 def get_session(session_id):
-    if request.method == 'OPTIONS':
-        return '', 200
-    
     try:
         user_id = session.get('user_id')
         if not user_id:
@@ -459,11 +414,8 @@ def get_session(session_id):
         logger.error(f"Get session error: {e}")
         return jsonify({"error": str(e)}), 500
 
-@app.route('/api/user-sessions', methods=['GET', 'OPTIONS'])
+@app.route('/api/user-sessions', methods=['GET'])
 def user_sessions():
-    if request.method == 'OPTIONS':
-        return '', 200
-    
     try:
         user_id = session.get('user_id')
         if not user_id:
@@ -486,11 +438,8 @@ def user_sessions():
         logger.error(f"User sessions error: {e}")
         return jsonify({"error": str(e)}), 500
 
-@app.route('/api/session/<int:session_id>', methods=['DELETE', 'OPTIONS'])
+@app.route('/api/session/<int:session_id>', methods=['DELETE'])
 def delete_session(session_id):
-    if request.method == 'OPTIONS':
-        return '', 200
-    
     try:
         user_id = session.get('user_id')
         if not user_id:
@@ -510,11 +459,8 @@ def delete_session(session_id):
         logger.error(f"Delete session error: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
 
-@app.route('/api/detect-face', methods=['POST', 'OPTIONS'])
+@app.route('/api/detect-face', methods=['POST'])
 def detect_face():
-    if request.method == 'OPTIONS':
-        return '', 200
-    
     try:
         return jsonify({
             "face_detected": True,
