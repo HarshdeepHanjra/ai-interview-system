@@ -3,7 +3,7 @@
 const getApiUrl = () => {
   // For production (Vercel)
   if (process.env.NODE_ENV === 'production') {
-    return 'https://ai-interview-backend.onrender.com';
+    return 'https://ai-interview-backend-pwb6.onrender.com';  // Your Render backend URL
   }
   // For development (localhost)
   return 'http://localhost:5000';
