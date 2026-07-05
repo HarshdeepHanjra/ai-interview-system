@@ -27,38 +27,19 @@ app.config.update(
     PERMANENT_SESSION_LIFETIME=timedelta(days=7)
 )
 
-# CORS Configuration - Allow all Vercel URLs and localhost
-# CORS(app, 
-#      supports_credentials=True, 
-#      origins=[
-#          'http://localhost:3000',
-#          'http://localhost:5000',
-#          'https://ai-interview-system-one-wheat.vercel.app',  # Your actual Vercel URL
-#          'https://ai-interview-frontend.vercel.app',
-#          'https://ai-interview-system.vercel.app',
-#          'https://*.vercel.app',
-#          'https://*.onrender.com'
-#      ],
-#      allow_headers=['Content-Type', 'Authorization', 'Accept', 'X-Requested-With'],
-#      methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-#      expose_headers=['Content-Type', 'Authorization'])
-
-
 # =============================================
-# CORS CONFIGURATION
+# CORS CONFIGURATION - SINGLE CLEAN VERSION
 # =============================================
-
 CORS(
     app,
-    resources={
-        r"/api/*": {
-            "origins": [
-                "https://ai-interview-system-one-wheat.vercel.app",
-                "http://localhost:3000",
-                "http://localhost:5173"
-            ]
-        }
-    },
+    origins=[
+        "https://ai-interview-system-one-wheat.vercel.app",
+        "https://ai-interview-frontend.vercel.app",
+        "https://ai-interview-system.vercel.app",
+        "http://localhost:3000",
+        "http://localhost:5000",
+        "http://localhost:5173"
+    ],
     supports_credentials=True,
     allow_headers=[
         "Content-Type",
@@ -78,17 +59,6 @@ CORS(
         "Authorization"
     ]
 )
-
-
-@app.after_request
-def after_request(response):
-    response.headers["Access-Control-Allow-Origin"] = "https://ai-interview-system-one-wheat.vercel.app"
-    response.headers["Access-Control-Allow-Credentials"] = "true"
-    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, Accept, X-Requested-With"
-    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
-    return response
-
-
 
 # Import database modules
 from database import db, UserDAO, InterviewSessionDAO, QuestionResponseDAO
