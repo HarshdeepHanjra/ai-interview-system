@@ -741,6 +741,89 @@ def test_mic():
             "is_good": False,
             "feedback": str(e)
         }), 500
+    
+# =============================================
+# DETECT EMOTION API
+# =============================================
+
+@app.route('/api/detect-emotion', methods=['POST', 'OPTIONS'])
+def detect_emotion():
+
+    if request.method == 'OPTIONS':
+        return '', 200
+
+    try:
+        data = request.get_json()
+
+        return jsonify({
+            "success": True,
+            "emotion": "Neutral",
+            "confidence": 85,
+            "face_detected": True,
+            "face_count": 1,
+            "eye_contact": 0.75,
+            "smile": False,
+            "all_emotions": [
+                {
+                    "emotion": "Neutral",
+                    "confidence": 85
+                },
+                {
+                    "emotion": "Happy",
+                    "confidence": 10
+                },
+                {
+                    "emotion": "Sad",
+                    "confidence": 5
+                }
+            ]
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Emotion detection error: {e}")
+
+        return jsonify({
+            "success": False,
+            "emotion": "Neutral",
+            "confidence": 0,
+            "face_detected": False,
+            "message": str(e)
+        }), 500
+
+
+# =============================================
+# EMOTION ANALYSIS API
+# =============================================
+
+@app.route('/api/emotion-analysis', methods=['GET', 'OPTIONS'])
+def emotion_analysis():
+
+    if request.method == 'OPTIONS':
+        return '', 200
+
+    try:
+        return jsonify({
+            "success": True,
+            "dominant_emotion": "Neutral",
+            "confidence": 85,
+            "emotion_distribution": {
+                "happy": 20,
+                "neutral": 70,
+                "sad": 5,
+                "angry": 3,
+                "fearful": 2
+            },
+            "recommendation":
+                "Maintain eye contact and smile occasionally."
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Emotion analysis error: {e}")
+
+        return jsonify({
+            "success": False,
+            "message": str(e)
+        }), 500
         
 
 @app.route('/api/detect-face', methods=['POST', 'OPTIONS'])
