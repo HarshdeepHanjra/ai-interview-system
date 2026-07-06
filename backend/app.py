@@ -22,9 +22,10 @@ app.secret_key = os.getenv('SECRET_KEY', 'your-secret-key-change-this')
 # SESSION CONFIGURATION
 # =============================================
 app.config.update(
-    SESSION_COOKIE_SECURE=False,
+    SECRET_KEY=os.getenv('SECRET_KEY', 'your-secret-key'),
+    SESSION_COOKIE_SECURE=True,        # HTTPS ke liye
     SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SAMESITE='Lax',
+    SESSION_COOKIE_SAMESITE='None',    # Cross-domain support
     PERMANENT_SESSION_LIFETIME=timedelta(days=7),
     SESSION_COOKIE_DOMAIN=None,
     SESSION_COOKIE_PATH='/'
@@ -45,7 +46,7 @@ CORS(app,
          'https://*.vercel.app',
          'https://*.onrender.com'
      ],
-     allow_headers=['Content-Type', 'Authorization', 'Accept', 'X-Requested-With'],
+     allow_headers=['Content-Type', 'Authorization'],
      methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
      expose_headers=['Content-Type', 'Authorization'])
 
@@ -285,17 +286,19 @@ def login():
         
         user = login_user(username, password)
         if user:
+            session.clear()
+
             session['user_id'] = user['id']
             session['username'] = user['username']
             session.permanent = True
-            
-            logger.info(f"User logged in: {username} (ID: {user['id']})")
-            
+
+            logger.info(f"SESSION CREATED: {dict(session)}")
+
             return jsonify({
-                "success": True, 
-                "user_id": user['id'], 
+                "success": True,
+                "user_id": user['id'],
                 "username": user['username']
-            })
+            }),200
         return jsonify({"success": False, "message": "Invalid credentials"}), 401
         
     except Exception as e:
@@ -313,14 +316,21 @@ def logout():
 def check_auth():
     if request.method == 'OPTIONS':
         return '', 200
-    
+
+    # Debug: session check
+    logger.info(f"Current Session: {dict(session)}")
+
     if 'user_id' in session:
         return jsonify({
-            "authenticated": True, 
-            "user_id": session['user_id'], 
+            "authenticated": True,
+            "user_id": session['user_id'],
             "username": session['username']
-        })
-    return jsonify({"authenticated": False})
+        }), 200
+
+    return jsonify({
+        "authenticated": False,
+        "message": "No active session"
+    }), 401
 
 @app.route('/api/roles', methods=['GET', 'OPTIONS'])
 def get_roles():
