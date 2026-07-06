@@ -46,7 +46,8 @@ class AudioAnalyzer:
                 duration = n_frames / float(sample_rate)
             
             # Calculate RMS (volume)
-            rms = np.sqrt(np.mean(audio_data**2)) if len(audio_data) > 0 else 0
+            audio_data = audio_data.astype(np.float32)
+            rms = np.sqrt(np.mean(audio_data**2))
             
             # Normalize volume (typical speaking level is around 1000-5000)
             if rms < 500:

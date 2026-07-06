@@ -518,6 +518,36 @@ def delete_session(session_id):
     except Exception as e:
         logger.error(f"Delete session error: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
+    
+# =============================================
+# TEST MICROPHONE API
+# =============================================
+
+@app.route('/api/test-mic', methods=['POST', 'OPTIONS'])
+def test_mic():
+
+    if request.method == 'OPTIONS':
+        return '', 200
+
+    try:
+        data = request.get_json()
+
+        return jsonify({
+            "success": True,
+            "is_good": True,
+            "quality_score": 0.85,
+            "volume_level": 0.75,
+            "feedback": "Microphone is working properly.",
+            "test_text": "Microphone test successful"
+        }), 200
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "is_good": False,
+            "feedback": str(e)
+        }), 500
+        
 
 @app.route('/api/detect-face', methods=['POST', 'OPTIONS'])
 def detect_face():

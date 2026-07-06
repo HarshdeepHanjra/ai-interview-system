@@ -126,7 +126,7 @@ class EmotionDetector:
                 'emotion': emotion_data['emotion'],
                 'confidence': round(emotion_data['confidence'], 2),
                 'all_emotions': self.session_emotions[-10:],
-                'face_detected': True,
+                'face_detected': False,
                 'face_count': len(faces),
                 'eye_contact': emotion_data.get('eye_contact', 0),
                 'smile': emotion_data.get('smile', False),
@@ -374,7 +374,7 @@ class EmotionDetector:
         
         # Calculate ratios
         positive_emotions = ['Happy', 'Surprised']
-        negative_emotions = ['Angry', 'Disgusted', 'Fearful', 'Sad']
+        negative_emotions = ['Angry', 'Fearful', 'Sad']
         neutral_emotions = ['Neutral']
         
         positive_count = sum(emotion_counts.get(e, 0) for e in positive_emotions)

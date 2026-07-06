@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Webcam from 'react-webcam';
+import { API_URL } from '../config';
 import { 
   FaMicrophone, 
   FaVideo, 
@@ -37,20 +38,65 @@ function DeviceCheck({ onComplete }) {
 
   const fetchRoles = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/roles');
-      const data = await response.json();
-      if (data.roles) {
-        setRoles(Object.entries(data.roles).map(([key, value]) => ({ id: key, ...value })));
+      console.log('📡 Fetching roles from:', `${API_URL}/api/roles`);
+
+      const response = await fetch(`${API_URL}/api/roles`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP Error: ${response.status}`);
       }
+
+      const data = await response.json();
+      console.log('📥 Roles Response:', data);
+
+      if (data.roles) {
+        setRoles(
+          Object.entries(data.roles).map(([key, value]) => ({
+            id: key,
+            ...value
+          }))
+        );
+      } else {
+        throw new Error('No roles found');
+      }
+
     } catch (error) {
-      console.error('Error fetching roles:', error);
-      // Set default roles if API fails
+      console.error('❌ Error fetching roles:', error);
+
+      // Default roles if backend fails
       setRoles([
-        { id: 'general', name: 'General', icon: '💼' },
-        { id: 'software_engineering', name: 'Software Engineering', icon: '💻' },
-        { id: 'data_science', name: 'Data Science', icon: '📊' },
-        { id: 'product_management', name: 'Product Management', icon: '📱' },
-        { id: 'marketing', name: 'Marketing', icon: '📢' }
+        {
+          id: 'general',
+          name: 'General',
+          icon: '💼'
+        },
+        {
+          id: 'software_engineering',
+          name: 'Software Engineering',
+          icon: '💻'
+        },
+        {
+          id: 'data_science',
+          name: 'Data Science',
+          icon: '📊'
+        },
+        {
+          id: 'product_management',
+          name: 'Product Management',
+          icon: '📱'
+        },
+        {
+          id: 'marketing',
+          name: 'Marketing',
+          icon: '📢'
+        }
       ]);
     }
   };
@@ -60,7 +106,7 @@ function DeviceCheck({ onComplete }) {
       try {
         const imageSrc = webcamRef.current.getScreenshot();
         if (imageSrc) {
-          const response = await fetch('http://localhost:5000/api/detect-face', {
+          const response = await fetch(`${API_URL}/api/detect-face`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ image: imageSrc })
@@ -178,7 +224,7 @@ function DeviceCheck({ onComplete }) {
           try {
             const base64Audio = reader.result.split(',')[1];
             
-            const response = await fetch('http://localhost:5000/api/test-mic', {
+            const response = await fetch(`${API_URL}/api/test-mic`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ audio_data: base64Audio })
