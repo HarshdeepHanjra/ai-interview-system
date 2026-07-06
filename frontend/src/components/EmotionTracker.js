@@ -1,7 +1,8 @@
 // frontend/src/components/EmotionTracker.js
 import React, { useState, useEffect, useRef } from 'react';
 import { FaSmile, FaFrown, FaMeh, FaAngry, FaSurprise, FaTired, FaChartLine } from 'react-icons/fa';
-import './EmotionTracker.css'; // Import external CSS
+import { API_URL } from '../config';
+import './EmotionTracker.css';
 
 function EmotionTracker({ isActive, onEmotionUpdate }) {
   const [currentEmotion, setCurrentEmotion] = useState('Neutral');
@@ -52,9 +53,12 @@ function EmotionTracker({ isActive, onEmotionUpdate }) {
         ctx.drawImage(webcamElement, 0, 0, canvas.width, canvas.height);
         const imageData = canvas.toDataURL('image/jpeg');
         
-        const response = await fetch('http://localhost:5000/api/detect-emotion', {
+        console.log('📡 Sending emotion detection to:', `${API_URL}/api/detect-emotion`);
+        
+        const response = await fetch(`${API_URL}/api/detect-emotion`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({ image: imageData })
         });
         
@@ -63,6 +67,7 @@ function EmotionTracker({ isActive, onEmotionUpdate }) {
         }
         
         const data = await response.json();
+        console.log('📥 Emotion response:', data);
         
         const emotion = data.emotion || 'Neutral';
         const conf = data.confidence || 0;
@@ -81,21 +86,31 @@ function EmotionTracker({ isActive, onEmotionUpdate }) {
         setError(null);
       }
     } catch (error) {
-      console.error('Emotion detection error:', error);
+      console.error('❌ Emotion detection error:', error);
       setError('Failed to detect emotion');
     }
   };
 
   const fetchEmotionStats = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/emotion-analysis');
+      console.log('📡 Fetching emotion stats from:', `${API_URL}/api/emotion-analysis`);
+      
+      const response = await fetch(`${API_URL}/api/emotion-analysis`, {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      });
+      
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
+      console.log('📥 Emotion stats:', data);
       setEmotionStats(data);
     } catch (error) {
-      console.error('Error fetching emotion stats:', error);
+      console.error('❌ Error fetching emotion stats:', error);
     }
   };
 
