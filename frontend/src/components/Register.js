@@ -652,7 +652,7 @@ function Register() {
         .form-group label {
           font-size: 13px;
           font-weight: 600;
-          color: #c8c8d4;
+          color: #dedee2;
           display: flex;
           align-items: center;
           gap: 6px;
@@ -667,12 +667,12 @@ function Register() {
         .form-input {
           width: 100%;
           padding: 12px 42px 12px 16px;
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.08);
+          background: rgba(225, 42, 42, 0.15);
+          border: 1px solid rgb(12, 10, 10);
           border-radius: 12px;
           font-size: 14px;
           transition: all 0.3s;
-          color: #ffffff;
+          color: #060404;
           font-family: inherit;
           position: relative;
           z-index: 1;
@@ -681,8 +681,8 @@ function Register() {
         .form-input:focus {
           outline: none;
           border-color: #6c5ce7;
-          background: rgba(255, 255, 255, 0.08);
-          box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.1);
+          background: rgba(241, 235, 235, 0.97);
+          box-shadow: 0 0 0 3px rgba(36, 15, 226, 0.1);
         }
 
         .form-input:disabled {
@@ -773,7 +773,7 @@ function Register() {
         .btn-primary {
           width: 100%;
           padding: 14px;
-          background: linear-gradient(135deg, #6c5ce7 0%, #a29bfe 100%);
+          background: linear-gradient(135deg, #342d6d 0%, #a29bfe 100%);
           color: white;
           border: none;
           border-radius: 12px;
@@ -798,7 +798,7 @@ function Register() {
           left: -100%;
           width: 100%;
           height: 100%;
-          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+          background: linear-gradient(90deg, transparent, rgba(212, 40, 40, 0.1), transparent);
           transition: left 0.5s;
         }
 
@@ -836,7 +836,7 @@ function Register() {
         .spinner {
           width: 18px;
           height: 18px;
-          border: 3px solid rgba(255, 255, 255, 0.2);
+          border: 3px solid rgba(255, 255, 255, 0.92);
           border-top-color: white;
           border-radius: 50%;
           animation: spin 0.6s linear infinite;

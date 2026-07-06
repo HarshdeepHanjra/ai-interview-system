@@ -211,21 +211,19 @@ function Login({ onLogin }) {
               </button>
               <div className="input-glow"></div>
             </div>
-          </div>
-
-          {/* Form Options - Always Visible */}
-          <div className="form-options">
-            <label className="remember-me">
-              <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-              />
-              <span>Remember me</span>
-            </label>
-            <Link to="/forgot-password" className="forgot-link">
-              Forgot password?
-            </Link>
+            <div className="form-options">
+              <label className="remember-me">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                />
+                <span>Remember me</span>
+              </label>
+              <Link to="/forgot-password" className="forgot-link">
+                Forgot password?
+              </Link>
+            </div>
           </div>
 
           <button 
@@ -716,7 +714,7 @@ function Login({ onLogin }) {
         .form-input:focus {
           outline: none;
           border-color: #6c5ce7;
-          background: rgba(255, 255, 255, 0.08);
+          background: rgba(243, 242, 242, 0.97);
           box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.1);
         }
 
@@ -772,21 +770,19 @@ function Login({ onLogin }) {
           opacity: 0.5;
         }
 
-        /* Form Options - Always Visible */
+        /* Form Options */
         .form-options {
           display: flex;
           justify-content: space-between;
           align-items: center;
           margin-top: 4px;
-          padding: 4px 0;
-          min-height: 32px;
         }
 
         @media (max-width: 480px) {
           .form-options {
-            flex-wrap: wrap;
+            flex-direction: column;
+            align-items: flex-start;
             gap: 8px;
-            min-height: auto;
           }
         }
 
@@ -810,7 +806,6 @@ function Login({ onLogin }) {
           height: 16px;
           accent-color: #6c5ce7;
           cursor: pointer;
-          flex-shrink: 0;
         }
 
         .forgot-link {
@@ -818,7 +813,6 @@ function Login({ onLogin }) {
           color: #6c5ce7;
           text-decoration: none;
           transition: color 0.3s;
-          padding: 4px 0;
         }
 
         @media (max-width: 480px) {
