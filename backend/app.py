@@ -152,11 +152,117 @@ def get_questions_by_role(role):
             {'text': "Describe a challenge you faced and how you overcame it.", 'expected_keywords': ['challenge', 'solution', 'problem-solving', 'result', 'learning'], 'difficulty': 'Medium'}
         ],
         'software_engineering': [
-            {'text': "Explain the difference between REST and GraphQL APIs.", 'expected_keywords': ['REST', 'GraphQL', 'API', 'endpoints', 'query', 'performance'], 'difficulty': 'Medium'},
-            {'text': "How would you design a scalable microservices architecture?", 'expected_keywords': ['microservices', 'scalability', 'architecture', 'design', 'communication'], 'difficulty': 'Hard'}
+            {
+                'text': "Explain the difference between REST and GraphQL APIs.",
+                'expected_keywords': [
+                    'REST',
+                    'GraphQL',
+                    'API',
+                    'query',
+                    'endpoint'
+                ],
+                'difficulty': 'Medium'
+            },
+            {
+                'text': "How would you design a scalable microservices architecture?",
+                'expected_keywords': [
+                    'microservices',
+                    'scalability',
+                    'architecture',
+                    'service'
+                ],
+                'difficulty': 'Hard'
+            },
+            {
+                'text': "What is the difference between SQL and NoSQL?",
+                'expected_keywords': [
+                    'sql',
+                    'nosql',
+                    'database',
+                    'schema'
+                ],
+                'difficulty': 'Easy'
+            },
+            {
+                'text': "Explain multithreading and multiprocessing.",
+                'expected_keywords': [
+                    'thread',
+                    'process',
+                    'parallel',
+                    'concurrency'
+                ],
+                'difficulty': 'Medium'
+            },
+            {
+                'text': "What is the purpose of Docker and Kubernetes?",
+                'expected_keywords': [
+                    'docker',
+                    'kubernetes',
+                    'container',
+                    'orchestration'
+                ],
+                'difficulty': 'Hard'
+            }
         ],
         'data_science': [
-            {'text': "Explain the difference between supervised and unsupervised learning.", 'expected_keywords': ['supervised', 'unsupervised', 'labeled', 'unlabeled', 'classification', 'clustering'], 'difficulty': 'Medium'}
+            {
+                'text': "Explain the difference between supervised and unsupervised learning.",
+                'expected_keywords': [
+                    'supervised',
+                    'unsupervised',
+                    'labeled',
+                    'unlabeled',
+                    'classification',
+                    'clustering'
+                ],
+                'difficulty': 'Medium'
+            },
+            {
+                'text': "What is overfitting and how can you prevent it?",
+                'expected_keywords': [
+                    'overfitting',
+                    'cross validation',
+                    'regularization',
+                    'dropout',
+                    'bias',
+                    'variance'
+                ],
+                'difficulty': 'Medium'
+            },
+            {
+                'text': "Explain the difference between classification and regression.",
+                'expected_keywords': [
+                    'classification',
+                    'regression',
+                    'prediction',
+                    'continuous',
+                    'categorical'
+                ],
+                'difficulty': 'Easy'
+            },
+            {
+                'text': "How does a Random Forest algorithm work?",
+                'expected_keywords': [
+                    'random forest',
+                    'decision tree',
+                    'ensemble',
+                    'bagging',
+                    'prediction'
+                ],
+                'difficulty': 'Hard'
+            },
+            {
+                'text': "What evaluation metrics are used in machine learning?",
+                'expected_keywords': [
+                    'accuracy',
+                    'precision',
+                    'recall',
+                    'f1',
+                    'auc',
+                    'confusion matrix'
+                ],
+                'difficulty': 'Medium'
+            }
         ]
     }
     
@@ -346,21 +452,34 @@ def get_roles():
 
 @app.route('/api/questions', methods=['POST', 'OPTIONS'])
 def get_questions():
+
     if request.method == 'OPTIONS':
         return '', 200
-    
+
     try:
-        data = request.json
+        data = request.get_json()
+
         role = data.get('role', 'general')
-        logger.info(f"Fetching questions for role: {role}")
-        
+
         questions = get_questions_by_role(role)
-        logger.info(f"Found {len(questions)} questions")
-        
-        return jsonify({"questions": questions[:5]})
+
+        logger.info(
+            f"Role={role}, Questions={len(questions)}"
+        )
+
+        return jsonify({
+            "success": True,
+            "count": len(questions),
+            "questions": questions
+        }), 200
+
     except Exception as e:
-        logger.error(f"Error fetching questions: {e}")
-        return jsonify({"error": str(e)}), 500
+        logger.exception(e)
+
+        return jsonify({
+            "success": False,
+            "message": str(e)
+        }), 500
 
 @app.route('/api/analyze-answer', methods=['POST', 'OPTIONS'])
 def analyze_answer():
@@ -410,44 +529,119 @@ def analyze_answer():
 
 @app.route('/api/save-interview', methods=['POST', 'OPTIONS'])
 def save_interview():
+
     if request.method == 'OPTIONS':
         return '', 200
-    
+
     try:
-        data = request.json
+        data = request.get_json()
+
         user_id = session.get('user_id')
-        
+
         if not user_id:
-            return jsonify({"success": False, "message": "Not authenticated"}), 401
-        
+            return jsonify({
+                "success": False,
+                "message": "Not authenticated"
+            }), 401
+
         if not data:
-            return jsonify({"success": False, "message": "No data provided"}), 400
-        
-        role = data.get('role', 'general')
-        overall_score = float(data.get('overall_score', 0))
-        overall_feedback = data.get('overall_feedback', '')
-        transcript = data.get('transcript', '')
-        audio_quality = float(data.get('audio_quality', 0.8))
-        camera_score = float(data.get('camera_score', 0.8))
-        questions_data = data.get('questions_data', [])
-        total_time = int(data.get('total_time', 0))
-        
-        logger.info(f"Saving interview: role={role}, score={overall_score}, questions={len(questions_data)}")
-        
-        session_id = save_interview_session(
-            user_id, role, overall_score, overall_feedback,
-            transcript, audio_quality, camera_score,
-            questions_data, total_time
+            return jsonify({
+                "success": False,
+                "message": "No data provided"
+            }), 400
+
+        # Safe parsing
+        role = data.get('role') or 'general'
+
+        overall_score = float(
+            data.get('overall_score') or 0
         )
-        
+
+        overall_feedback = (
+            data.get('overall_feedback') or ''
+        )
+
+        transcript = (
+            data.get('transcript') or ''
+        )
+
+        audio_quality = float(
+            data.get('audio_quality') or 0.8
+        )
+
+        camera_score = float(
+            data.get('camera_score') or 0.8
+        )
+
+        total_time = int(
+            data.get('total_time') or 0
+        )
+
+        questions_data = (
+            data.get('questions_data') or []
+        )
+
+        # Fix question scores
+        cleaned_questions = []
+
+        for q in questions_data:
+
+            cleaned_questions.append({
+                "question": q.get('question', ''),
+                "answer": q.get('answer', ''),
+                "feedback": q.get('feedback', ''),
+                "score": float(
+                    q.get('score') or 0
+                ),
+                "confidence_score": float(
+                    q.get('confidence_score') or 0
+                ),
+                "clarity_score": float(
+                    q.get('clarity_score') or 0
+                ),
+                "keyword_score": float(
+                    q.get('keyword_score') or 0
+                ),
+                "emotion": q.get('emotion', 'Neutral')
+            })
+
+        logger.info(
+            f"Saving interview: "
+            f"role={role}, "
+            f"score={overall_score}, "
+            f"questions={len(cleaned_questions)}"
+        )
+
+        session_id = save_interview_session(
+            user_id,
+            role,
+            overall_score,
+            overall_feedback,
+            transcript,
+            audio_quality,
+            camera_score,
+            cleaned_questions,
+            total_time
+        )
+
         if session_id:
-            return jsonify({"success": True, "session_id": session_id})
-        else:
-            return jsonify({"success": False, "message": "Failed to save interview in database"}), 500
-        
+            return jsonify({
+                "success": True,
+                "session_id": session_id
+            }), 200
+
+        return jsonify({
+            "success": False,
+            "message": "Database save failed"
+        }), 500
+
     except Exception as e:
-        logger.error(f"Save interview error: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        logger.exception("Save interview error")
+
+        return jsonify({
+            "success": False,
+            "message": str(e)
+        }), 500
 
 @app.route('/api/session/<int:session_id>', methods=['GET', 'OPTIONS'])
 def get_session(session_id):
