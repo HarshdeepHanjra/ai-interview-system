@@ -17,7 +17,8 @@ import {
   FaTrash,
   FaTrophy
 } from 'react-icons/fa';
-import './Dashboard.css'; // Import external CSS instead of using styled-jsx
+import { API_URL } from '../config';
+import './Dashboard.css';
 
 function Dashboard({ user }) {
   const [sessions, setSessions] = useState([]);
@@ -37,15 +38,23 @@ function Dashboard({ user }) {
 
   const fetchUserSessions = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/user-sessions', {
-        credentials: 'include'
+      setLoading(true);
+      console.log('📡 Fetching sessions from:', `${API_URL}/api/user-sessions`);
+      
+      const response = await fetch(`${API_URL}/api/user-sessions`, {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
       });
       
       if (!response.ok) {
-        throw new Error('Failed to fetch sessions');
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
       
       const data = await response.json();
+      console.log('📥 Sessions response:', data);
       setSessions(data.sessions || []);
       
       if (data.sessions && data.sessions.length > 0) {
@@ -62,7 +71,7 @@ function Dashboard({ user }) {
         });
       }
     } catch (error) {
-      console.error('Error fetching sessions:', error);
+      console.error('❌ Error fetching sessions:', error);
       setError('Failed to load your interview history');
     } finally {
       setLoading(false);
@@ -70,6 +79,7 @@ function Dashboard({ user }) {
   };
 
   const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
@@ -116,14 +126,19 @@ function Dashboard({ user }) {
     }
     
     try {
-      const response = await fetch(`http://localhost:5000/api/session/${sessionId}`, {
+      const response = await fetch(`${API_URL}/api/session/${sessionId}`, {
         method: 'DELETE',
-        credentials: 'include'
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
       
       if (response.ok) {
         setSessions(sessions.filter(s => s.id !== sessionId));
         fetchUserSessions();
+      } else {
+        alert('Failed to delete session');
       }
     } catch (error) {
       console.error('Error deleting session:', error);
@@ -191,7 +206,7 @@ function Dashboard({ user }) {
             <FaBrain />
           </div>
           <div className="stat-info">
-            <h3>{sessions.length > 0 ? sessions[0]?.role || 'N/A' : 'N/A'}</h3>
+            <h3>{sessions.length > 0 ? sessions[0]?.role?.replace('_', ' ').toUpperCase() || 'N/A' : 'N/A'}</h3>
             <p>Latest Role</p>
           </div>
         </div>
@@ -253,7 +268,7 @@ function Dashboard({ user }) {
                   <div className="session-meta">
                     <div className="meta-item">
                       <FaCalendarAlt className="meta-icon" />
-                      <span>{formatDate(session.date)}</span>
+                      <span>{formatDate(session.created_at || session.date)}</span>
                     </div>
                     <div className="meta-item">
                       <FaClock className="meta-icon" />
