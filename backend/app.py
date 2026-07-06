@@ -19,21 +19,21 @@ app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'your-secret-key-change-this')
 
 # =============================================
-# SESSION CONFIGURATION - FIXED
+# SESSION CONFIGURATION
 # =============================================
 app.config.update(
-    SESSION_COOKIE_SECURE=False,  # Set to True in production with HTTPS
+    SESSION_COOKIE_SECURE=False,
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE='Lax',
     PERMANENT_SESSION_LIFETIME=timedelta(days=7),
     SESSION_COOKIE_DOMAIN=None,
-    SESSION_COOKIE_PATH='/',
-    SESSION_TYPE='filesystem'  # This helps persist sessions
+    SESSION_COOKIE_PATH='/'
 )
 
 # =============================================
-# CORS CONFIGURATION - FIXED
+# CORS CONFIGURATION - SINGLE SOURCE OF TRUTH
 # =============================================
+# Use ONLY flask_cors, remove manual headers to avoid duplicates
 CORS(app, 
      supports_credentials=True, 
      origins=[
@@ -50,43 +50,10 @@ CORS(app,
      expose_headers=['Content-Type', 'Authorization'])
 
 # =============================================
-# MANUAL CORS HEADERS - FIXED
+# NO MANUAL CORS HEADERS - REMOVED to avoid duplicates
 # =============================================
-@app.after_request
-def after_request(response):
-    origin = request.headers.get('Origin')
-    allowed_origins = [
-        'http://localhost:3000',
-        'http://localhost:5000',
-        'https://ai-interview-system-one-wheat.vercel.app',
-        'https://ai-interview-frontend.vercel.app',
-        'https://ai-interview-system.vercel.app'
-    ]
-    if origin in allowed_origins:
-        response.headers.add('Access-Control-Allow-Origin', origin)
-        response.headers.add('Access-Control-Allow-Credentials', 'true')
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,Accept,X-Requested-With')
-    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-    return response
-
-# Handle preflight requests
-@app.route('/api/<path:path>', methods=['OPTIONS'])
-def handle_options(path):
-    response = jsonify({'message': 'OK'})
-    origin = request.headers.get('Origin')
-    allowed_origins = [
-        'http://localhost:3000',
-        'http://localhost:5000',
-        'https://ai-interview-system-one-wheat.vercel.app',
-        'https://ai-interview-frontend.vercel.app',
-        'https://ai-interview-system.vercel.app'
-    ]
-    if origin in allowed_origins:
-        response.headers.add('Access-Control-Allow-Origin', origin)
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,Accept,X-Requested-With')
-    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-    response.headers.add('Access-Control-Allow-Credentials', 'true')
-    return response, 200
+# The @app.after_request and handle_options are REMOVED
+# because flask_cors handles everything
 
 # Import database modules
 from database import db, UserDAO, InterviewSessionDAO, QuestionResponseDAO
@@ -318,13 +285,11 @@ def login():
         
         user = login_user(username, password)
         if user:
-            # Set session
             session['user_id'] = user['id']
             session['username'] = user['username']
             session.permanent = True
             
             logger.info(f"User logged in: {username} (ID: {user['id']})")
-            logger.info(f"Session contents: {dict(session)}")
             
             return jsonify({
                 "success": True, 
@@ -349,8 +314,6 @@ def check_auth():
     if request.method == 'OPTIONS':
         return '', 200
     
-    logger.info(f"Session contents: {dict(session)}")
-    
     if 'user_id' in session:
         return jsonify({
             "authenticated": True, 
@@ -359,7 +322,209 @@ def check_auth():
         })
     return jsonify({"authenticated": False})
 
-# ... rest of your routes (keep them same)
+@app.route('/api/roles', methods=['GET', 'OPTIONS'])
+def get_roles():
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    try:
+        roles = get_all_roles()
+        return jsonify({"roles": roles})
+    except Exception as e:
+        logger.error(f"Error fetching roles: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/questions', methods=['POST', 'OPTIONS'])
+def get_questions():
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    try:
+        data = request.json
+        role = data.get('role', 'general')
+        logger.info(f"Fetching questions for role: {role}")
+        
+        questions = get_questions_by_role(role)
+        logger.info(f"Found {len(questions)} questions")
+        
+        return jsonify({"questions": questions[:5]})
+    except Exception as e:
+        logger.error(f"Error fetching questions: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/analyze-answer', methods=['POST', 'OPTIONS'])
+def analyze_answer():
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    try:
+        data = request.json
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+        
+        question_data = data.get('question_data', {})
+        answer_text = data.get('answer_text', '')
+        
+        audio_quality = {'quality_score': 1.0, 'feedback': 'Text input used', 'is_good': True}
+        if 'audio_data' in data:
+            try:
+                audio_data = base64.b64decode(data['audio_data'])
+                with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as f:
+                    f.write(audio_data)
+                    temp_path = f.name
+                
+                audio_quality = {'quality_score': 0.8, 'feedback': 'Audio processed', 'is_good': True}
+                answer_text = "This is a simulated transcription from audio."
+                
+                os.unlink(temp_path)
+            except Exception as e:
+                logger.error(f"Audio processing error: {e}")
+                audio_quality = {'quality_score': 0.5, 'feedback': str(e), 'is_good': False}
+        
+        analysis = analyze_answer_simple(question_data, answer_text)
+        
+        return jsonify({
+            "transcript": answer_text,
+            "score": analysis['score'],
+            "feedback": analysis['feedback'],
+            "matched_keywords": analysis['matched_keywords'],
+            "keyword_score": analysis['keyword_score'],
+            "confidence_score": analysis['confidence_score'],
+            "clarity_score": 0.7,
+            "clarity_feedback": "Moderate clarity",
+            "audio_quality": audio_quality
+        })
+    except Exception as e:
+        logger.error(f"Answer analysis error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/save-interview', methods=['POST', 'OPTIONS'])
+def save_interview():
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    try:
+        data = request.json
+        user_id = session.get('user_id')
+        
+        if not user_id:
+            return jsonify({"success": False, "message": "Not authenticated"}), 401
+        
+        if not data:
+            return jsonify({"success": False, "message": "No data provided"}), 400
+        
+        role = data.get('role', 'general')
+        overall_score = float(data.get('overall_score', 0))
+        overall_feedback = data.get('overall_feedback', '')
+        transcript = data.get('transcript', '')
+        audio_quality = float(data.get('audio_quality', 0.8))
+        camera_score = float(data.get('camera_score', 0.8))
+        questions_data = data.get('questions_data', [])
+        total_time = int(data.get('total_time', 0))
+        
+        logger.info(f"Saving interview: role={role}, score={overall_score}, questions={len(questions_data)}")
+        
+        session_id = save_interview_session(
+            user_id, role, overall_score, overall_feedback,
+            transcript, audio_quality, camera_score,
+            questions_data, total_time
+        )
+        
+        if session_id:
+            return jsonify({"success": True, "session_id": session_id})
+        else:
+            return jsonify({"success": False, "message": "Failed to save interview in database"}), 500
+        
+    except Exception as e:
+        logger.error(f"Save interview error: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+@app.route('/api/session/<int:session_id>', methods=['GET', 'OPTIONS'])
+def get_session(session_id):
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    try:
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({"success": False, "message": "Not authenticated"}), 401
+        
+        session_data = get_session_details(session_id)
+        if session_data:
+            return jsonify(session_data)
+        return jsonify({"success": False, "message": "Session not found"}), 404
+        
+    except Exception as e:
+        logger.error(f"Get session error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/user-sessions', methods=['GET', 'OPTIONS'])
+def user_sessions():
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    try:
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({"success": False, "message": "Not authenticated"}), 401
+        
+        sessions = get_user_sessions(user_id)
+        
+        return jsonify({
+            "sessions": [
+                {
+                    "id": s['id'],
+                    "date": str(s['created_at']),
+                    "score": s['overall_score'],
+                    "role": s['role']
+                } for s in sessions
+            ]
+        })
+        
+    except Exception as e:
+        logger.error(f"User sessions error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/session/<int:session_id>', methods=['DELETE', 'OPTIONS'])
+def delete_session(session_id):
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    try:
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({"success": False, "message": "Not authenticated"}), 401
+        
+        session_data = InterviewSessionDAO.get_session(session_id)
+        if not session_data:
+            return jsonify({"success": False, "message": "Session not found"}), 404
+        
+        if session_data['user_id'] != user_id:
+            return jsonify({"success": False, "message": "Unauthorized"}), 403
+        
+        InterviewSessionDAO.delete_session(session_id)
+        return jsonify({"success": True, "message": "Session deleted successfully"})
+        
+    except Exception as e:
+        logger.error(f"Delete session error: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+@app.route('/api/detect-face', methods=['POST', 'OPTIONS'])
+def detect_face():
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    try:
+        return jsonify({
+            "face_detected": True,
+            "num_faces": 1,
+            "eye_contact_score": 0.8,
+            "camera_quality": 0.9,
+            "feedback": "Camera working well!"
+        })
+    except Exception as e:
+        logger.error(f"Face detection error: {e}")
+        return jsonify({"face_detected": False, "error": str(e)}), 500
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 10000))
