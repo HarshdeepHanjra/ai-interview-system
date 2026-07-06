@@ -19,7 +19,8 @@ import {
   FaArrowLeft,
   FaArrowRight
 } from 'react-icons/fa';
-import './Interview.css'; // Import external CSS
+import { API_URL } from '../config';
+import './Interview.css';
 
 function Interview({ user }) {
   const [questions, setQuestions] = useState([]);
@@ -89,10 +90,13 @@ function Interview({ user }) {
     setLoadingQuestions(true);
     setError(null);
     try {
-      console.log('Loading questions for role:', selectedRole);
-      const response = await fetch('http://localhost:5000/api/questions', {
+      console.log('📡 Loading questions from:', `${API_URL}/api/questions`);
+      console.log('Selected role:', selectedRole);
+      
+      const response = await fetch(`${API_URL}/api/questions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ role: selectedRole })
       });
       
@@ -101,7 +105,7 @@ function Interview({ user }) {
       }
       
       const data = await response.json();
-      console.log('Questions loaded:', data);
+      console.log('📥 Questions loaded:', data);
       
       if (data.questions && data.questions.length > 0) {
         setQuestions(data.questions);
@@ -109,7 +113,7 @@ function Interview({ user }) {
         setError('No questions available for this role');
       }
     } catch (error) {
-      console.error('Error loading questions:', error);
+      console.error('❌ Error loading questions:', error);
       setError('Failed to load questions. Please try again.');
     } finally {
       setLoadingQuestions(false);
@@ -122,9 +126,10 @@ function Interview({ user }) {
       try {
         const imageSrc = webcamRef.current.getScreenshot();
         if (imageSrc) {
-          const response = await fetch('http://localhost:5000/api/detect-face', {
+          const response = await fetch(`${API_URL}/api/detect-face`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify({ image: imageSrc })
           });
           const data = await response.json();
@@ -201,9 +206,10 @@ function Interview({ user }) {
     setIsSubmitting(true);
     const currentQuestion = questions[currentQuestionIndex];
     try {
-      const response = await fetch('http://localhost:5000/api/analyze-answer', {
+      const response = await fetch(`${API_URL}/api/analyze-answer`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           question_data: currentQuestion,
           audio_data: audioData
@@ -245,9 +251,10 @@ function Interview({ user }) {
     const currentQuestion = questions[currentQuestionIndex];
     
     try {
-      const response = await fetch('http://localhost:5000/api/analyze-answer', {
+      const response = await fetch(`${API_URL}/api/analyze-answer`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           question_data: currentQuestion,
           answer_text: textAnswer
@@ -302,7 +309,7 @@ function Interview({ user }) {
     const avgAudioQuality = analysisResults.reduce((sum, r) => sum + (r.audio_quality?.quality_score || 0.8), 0) / analysisResults.length;
     
     try {
-      const response = await fetch('http://localhost:5000/api/save-interview', {
+      const response = await fetch(`${API_URL}/api/save-interview`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
