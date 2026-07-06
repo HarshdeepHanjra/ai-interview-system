@@ -39,6 +39,7 @@ function Dashboard({ user }) {
   const fetchUserSessions = async () => {
     try {
       setLoading(true);
+      setError(null);
       console.log('📡 Fetching sessions from:', `${API_URL}/api/user-sessions`);
       
       const response = await fetch(`${API_URL}/api/user-sessions`, {
@@ -48,6 +49,13 @@ function Dashboard({ user }) {
           'Accept': 'application/json'
         }
       });
+      
+      // If 401 Unauthorized, redirect to login
+      if (response.status === 401) {
+        console.warn('⚠️ Session expired, redirecting to login...');
+        navigate('/login');
+        return;
+      }
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -134,6 +142,11 @@ function Dashboard({ user }) {
         }
       });
       
+      if (response.status === 401) {
+        navigate('/login');
+        return;
+      }
+      
       if (response.ok) {
         setSessions(sessions.filter(s => s.id !== sessionId));
         fetchUserSessions();
@@ -145,6 +158,12 @@ function Dashboard({ user }) {
       alert('Failed to delete session');
     }
   };
+
+  // If user is not authenticated, redirect to login
+  if (!user) {
+    navigate('/login');
+    return null;
+  }
 
   if (loading) {
     return (
@@ -162,6 +181,7 @@ function Dashboard({ user }) {
         <h3>Error Loading Dashboard</h3>
         <p>{error}</p>
         <button onClick={fetchUserSessions} className="btn-primary">Try Again</button>
+        <button onClick={() => navigate('/login')} className="btn-secondary">Go to Login</button>
       </div>
     );
   }

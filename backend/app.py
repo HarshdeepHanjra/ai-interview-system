@@ -18,19 +18,21 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'your-secret-key-change-this')
 
-# Session configuration
+# =============================================
+# SESSION CONFIGURATION - FIXED
+# =============================================
 app.config.update(
-    SESSION_COOKIE_SECURE=True,
+    SESSION_COOKIE_SECURE=False,  # Set to True in production with HTTPS
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE='Lax',
-    PERMANENT_SESSION_LIFETIME=timedelta(days=7)
+    PERMANENT_SESSION_LIFETIME=timedelta(days=7),
+    SESSION_COOKIE_DOMAIN=None,  # Let the browser handle domain
+    SESSION_COOKIE_PATH='/'
 )
 
 # =============================================
-# CORS CONFIGURATION - COMPLETE FIX
+# CORS CONFIGURATION - FIXED
 # =============================================
-
-# Method 1: Using flask_cors
 CORS(app, 
      supports_credentials=True, 
      origins=[
@@ -46,10 +48,21 @@ CORS(app,
      methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
      expose_headers=['Content-Type', 'Authorization'])
 
-# Method 2: Manual CORS headers (backup)
+# =============================================
+# MANUAL CORS HEADERS - FIXED
+# =============================================
 @app.after_request
 def after_request(response):
-    response.headers.add('Access-Control-Allow-Origin', 'https://ai-interview-system-one-wheat.vercel.app')
+    origin = request.headers.get('Origin')
+    allowed_origins = [
+        'http://localhost:3000',
+        'http://localhost:5000',
+        'https://ai-interview-system-one-wheat.vercel.app',
+        'https://ai-interview-frontend.vercel.app',
+        'https://ai-interview-system.vercel.app'
+    ]
+    if origin in allowed_origins:
+        response.headers.add('Access-Control-Allow-Origin', origin)
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,Accept,X-Requested-With')
     response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
     response.headers.add('Access-Control-Allow-Credentials', 'true')
@@ -59,7 +72,16 @@ def after_request(response):
 @app.route('/api/<path:path>', methods=['OPTIONS'])
 def handle_options(path):
     response = jsonify({'message': 'OK'})
-    response.headers.add('Access-Control-Allow-Origin', 'https://ai-interview-system-one-wheat.vercel.app')
+    origin = request.headers.get('Origin')
+    allowed_origins = [
+        'http://localhost:3000',
+        'http://localhost:5000',
+        'https://ai-interview-system-one-wheat.vercel.app',
+        'https://ai-interview-frontend.vercel.app',
+        'https://ai-interview-system.vercel.app'
+    ]
+    if origin in allowed_origins:
+        response.headers.add('Access-Control-Allow-Origin', origin)
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,Accept,X-Requested-With')
     response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
     response.headers.add('Access-Control-Allow-Credentials', 'true')
@@ -295,8 +317,13 @@ def login():
         
         user = login_user(username, password)
         if user:
+            # Set session
             session['user_id'] = user['id']
             session['username'] = user['username']
+            session.permanent = True
+            
+            logger.info(f"User logged in: {username} (ID: {user['id']})")
+            
             return jsonify({
                 "success": True, 
                 "user_id": user['id'], 
@@ -319,6 +346,8 @@ def logout():
 def check_auth():
     if request.method == 'OPTIONS':
         return '', 200
+    
+    logger.info(f"Session contents: {dict(session)}")
     
     if 'user_id' in session:
         return jsonify({

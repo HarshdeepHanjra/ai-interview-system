@@ -24,6 +24,7 @@ function App() {
 
   const checkAuth = async () => {
     try {
+      console.log('🔍 Checking auth at:', `${API_URL}/api/check-auth`);
       const response = await fetch(`${API_URL}/api/check-auth`, {
         method: 'GET',
         credentials: 'include',
@@ -35,6 +36,7 @@ function App() {
       
       if (response.ok) {
         const data = await response.json();
+        console.log('🔐 Auth response:', data);
         setIsAuthenticated(data.authenticated || false);
         if (data.authenticated && data.user_id) {
           setUser({ 
@@ -47,7 +49,7 @@ function App() {
         setUser(null);
       }
     } catch (error) {
-      console.error('Auth check failed:', error);
+      console.error('❌ Auth check failed:', error);
       setIsAuthenticated(false);
       setUser(null);
     } finally {
@@ -74,7 +76,6 @@ function App() {
     } finally {
       setIsAuthenticated(false);
       setUser(null);
-      window.location.href = '/';
     }
   };
 

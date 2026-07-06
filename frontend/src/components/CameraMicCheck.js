@@ -12,6 +12,7 @@ import {
   FaMicrophoneAlt, 
   FaStepForward  
 } from 'react-icons/fa';
+import { API_URL } from '../config';
 
 function CameraMicCheck({ onComplete }) {
   const [cameraStatus, setCameraStatus] = useState('pending');
@@ -38,8 +39,22 @@ function CameraMicCheck({ onComplete }) {
 
   const fetchRoles = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/roles');
+      console.log('📡 Fetching roles from:', `${API_URL}/api/roles`);
+      const response = await fetch(`${API_URL}/api/roles`, {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
+      console.log('📥 Roles response:', data);
+      
       if (data.roles) {
         setRoles(Object.entries(data.roles).map(([key, value]) => ({ id: key, ...value })));
       }
@@ -61,9 +76,10 @@ function CameraMicCheck({ onComplete }) {
       try {
         const imageSrc = webcamRef.current.getScreenshot();
         if (imageSrc) {
-          const response = await fetch('http://localhost:5000/api/detect-face', {
+          const response = await fetch(`${API_URL}/api/detect-face`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify({ image: imageSrc })
           });
           const data = await response.json();
@@ -180,14 +196,16 @@ function CameraMicCheck({ onComplete }) {
           try {
             const base64Audio = reader.result.split(',')[1];
             
-            const response = await fetch('http://localhost:5000/api/test-mic', {
+            console.log('📡 Sending mic test to:', `${API_URL}/api/test-mic`);
+            const response = await fetch(`${API_URL}/api/test-mic`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
               body: JSON.stringify({ audio_data: base64Audio })
             });
             
             const data = await response.json();
-            console.log('Mic test response:', data);
+            console.log('📥 Mic test response:', data);
             
             setMicTestResult(data);
             

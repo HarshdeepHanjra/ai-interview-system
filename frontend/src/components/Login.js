@@ -57,8 +57,7 @@ function Login({ onLogin }) {
       const response = await fetch(`${API_URL}/api/login`, {
         method: 'POST',
         headers: { 
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
+          'Content-Type': 'application/json'
         },
         credentials: 'include',
         body: JSON.stringify({
