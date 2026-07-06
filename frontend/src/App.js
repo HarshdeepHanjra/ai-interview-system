@@ -43,6 +43,8 @@ function App() {
             id: data.user_id, 
             username: data.username || 'User' 
           });
+        } else {
+          setUser(null);
         }
       } else {
         setIsAuthenticated(false);
@@ -139,7 +141,7 @@ function App() {
         </nav>
         
         <Routes>
-          <Route path="/" element={<Home isAuthenticated={isAuthenticated} />} />
+          <Route path="/" element={<Home isAuthenticated={isAuthenticated} user={user} />} />
           <Route path="/about" element={<About />} />
           <Route 
             path="/login" 

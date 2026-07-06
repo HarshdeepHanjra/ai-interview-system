@@ -35,58 +35,60 @@ function Login({ onLogin }) {
     }
   }, []);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  // frontend/src/components/Login.js - Make sure credentials is included
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  
+  if (!formData.username.trim()) {
+    setError('Username is required');
+    return;
+  }
+  if (!formData.password) {
+    setError('Password is required');
+    return;
+  }
+
+  setLoading(true);
+  setError('');
+  setSuccess('');
+
+  try {
+    console.log('📡 Sending login request to:', `${API_URL}/api/login`);
     
-    if (!formData.username.trim()) {
-      setError('Username is required');
-      return;
-    }
-    if (!formData.password) {
-      setError('Password is required');
-      return;
-    }
+    const response = await fetch(`${API_URL}/api/login`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      credentials: 'include',  // IMPORTANT: This sends cookies
+      body: JSON.stringify({
+        username: formData.username,
+        password: formData.password
+      })
+    });
 
-    setLoading(true);
-    setError('');
-    setSuccess('');
-
-    try {
-      console.log('📡 Sending login request to:', `${API_URL}/api/login`);
-      
-      const response = await fetch(`${API_URL}/api/login`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          username: formData.username,
-          password: formData.password
-        })
-      });
-
-      const data = await response.json();
-      console.log('📥 Login response:', data);
-      
-      if (data.success) {
-        if (onLogin) {
-          onLogin({ 
-            id: data.user_id, 
-            username: data.username 
-          });
-        }
-        navigate('/dashboard');
-      } else {
-        setError(data.message || 'Invalid username or password');
+    const data = await response.json();
+    console.log('📥 Login response:', data);
+    
+    if (data.success) {
+      if (onLogin) {
+        onLogin({ 
+          id: data.user_id, 
+          username: data.username 
+        });
       }
-    } catch (err) {
-      console.error('❌ Login error:', err);
-      setError('Connection error. Please check your internet connection.');
-    } finally {
-      setLoading(false);
+      navigate('/dashboard');
+    } else {
+      setError(data.message || 'Invalid username or password');
     }
-  };
+  } catch (err) {
+    console.error('❌ Login error:', err);
+    setError('Connection error. Please check your internet connection.');
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="login-container">
