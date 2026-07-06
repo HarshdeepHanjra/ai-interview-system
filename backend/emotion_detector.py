@@ -1,4 +1,4 @@
-# backend/emotion_detector.py - No TensorFlow required!
+# backend/emotion_detector.py
 import cv2
 import numpy as np
 import base64
@@ -45,7 +45,6 @@ class EmotionDetector:
         # Mouth detector for smile detection
         self.mouth_cascade = None
         try:
-            # Try to load mouth cascade if available
             mouth_path = cv2.data.haarcascades + "haarcascade_smile.xml"
             if os.path.exists(mouth_path):
                 self.mouth_cascade = cv2.CascadeClassifier(mouth_path)
@@ -126,7 +125,7 @@ class EmotionDetector:
                 'emotion': emotion_data['emotion'],
                 'confidence': round(emotion_data['confidence'], 2),
                 'all_emotions': self.session_emotions[-10:],
-                'face_detected': False,
+                'face_detected': True,
                 'face_count': len(faces),
                 'eye_contact': emotion_data.get('eye_contact', 0),
                 'smile': emotion_data.get('smile', False),
@@ -429,37 +428,6 @@ class EmotionDetector:
         self.emotion_history = []
         logger.info("Emotion session reset")
         return {'success': True, 'message': 'Session reset successfully'}
-    
-    def get_current_emotion(self):
-        """Get the most recent emotion"""
-        if self.session_emotions:
-            return {
-                'emotion': self.session_emotions[-1],
-                'confidence': self.session_confidences[-1] if self.session_confidences else 50,
-                'recent': self.session_emotions[-10:] if len(self.session_emotions) >= 10 else self.session_emotions
-            }
-        return {
-            'emotion': 'Unknown',
-            'confidence': 0,
-            'recent': []
-        }
-    
-    def get_emotion_timeline(self):
-        """Get emotion timeline for visualization"""
-        if len(self.session_emotions) == 0:
-            return []
-        
-        timeline = []
-        step = max(1, len(self.session_emotions) // 20)  # Max 20 points
-        
-        for i in range(0, len(self.session_emotions), step):
-            timeline.append({
-                'index': i,
-                'emotion': self.session_emotions[i],
-                'confidence': self.session_confidences[i] if i < len(self.session_confidences) else 50
-            })
-        
-        return timeline
 
 # For testing
 if __name__ == "__main__":
@@ -469,14 +437,9 @@ if __name__ == "__main__":
     
     # Test initialization
     detector = EmotionDetector()
-    print(f"✅ Model loaded: {detector.model_loaded}")
     print(f"✅ Face detector: {detector.face_detector is not None}")
     print(f"✅ Eye detector: {detector.eye_detector is not None}")
     print(f"✅ Method: OpenCV-based emotion detection")
-    
-    # Test session analysis
-    analysis = detector.get_session_analysis()
-    print(f"\n📊 Session Analysis: {analysis}")
     
     print("\n✅ EmotionDetector ready! No TensorFlow required!")
     print("=" * 50)

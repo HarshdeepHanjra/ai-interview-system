@@ -7,9 +7,11 @@ import tempfile
 import logging
 from dotenv import load_dotenv
 from datetime import timedelta
+from emotion_detector import EmotionDetector
 
 load_dotenv()
 
+emotion_detector = EmotionDetector()
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -746,83 +748,86 @@ def test_mic():
 # DETECT EMOTION API
 # =============================================
 
+# backend/app.py - Add this with your other routes
+
+from emotion_detector import EmotionDetector
+
+# Initialize emotion detector
+emotion_detector = EmotionDetector()
+
 @app.route('/api/detect-emotion', methods=['POST', 'OPTIONS'])
 def detect_emotion():
-
     if request.method == 'OPTIONS':
         return '', 200
-
+    
     try:
-        data = request.get_json()
-
-        return jsonify({
-            "success": True,
-            "emotion": "Neutral",
-            "confidence": 85,
-            "face_detected": True,
-            "face_count": 1,
-            "eye_contact": 0.75,
-            "smile": False,
-            "all_emotions": [
-                {
-                    "emotion": "Neutral",
-                    "confidence": 85
-                },
-                {
-                    "emotion": "Happy",
-                    "confidence": 10
-                },
-                {
-                    "emotion": "Sad",
-                    "confidence": 5
-                }
-            ]
-        }), 200
-
+        data = request.json
+        if not data or 'image' not in data:
+            return jsonify({
+                'error': 'No image data provided',
+                'emotion': 'Neutral',
+                'confidence': 0,
+                'face_detected': False
+            }), 400
+        
+        image_data = data['image']
+        result = emotion_detector.detect_emotion_from_image(image_data)
+        
+        # Ensure we always return valid data
+        if not result:
+            result = {
+                'emotion': 'Neutral',
+                'confidence': 50,
+                'face_detected': True,
+                'eye_contact': 0.5,
+                'smile': False
+            }
+        
+        # Add session tracking
+        if 'user_id' in session:
+            # Store emotion in session if needed
+            pass
+        
+        return jsonify(result)
+        
     except Exception as e:
         logger.error(f"Emotion detection error: {e}")
-
         return jsonify({
-            "success": False,
-            "emotion": "Neutral",
-            "confidence": 0,
-            "face_detected": False,
-            "message": str(e)
+            'error': str(e),
+            'emotion': 'Neutral',
+            'confidence': 0,
+            'face_detected': False
         }), 500
 
-
-# =============================================
-# EMOTION ANALYSIS API
-# =============================================
-
 @app.route('/api/emotion-analysis', methods=['GET', 'OPTIONS'])
-def emotion_analysis():
-
+def get_emotion_analysis():
     if request.method == 'OPTIONS':
         return '', 200
-
+    
     try:
-        return jsonify({
-            "success": True,
-            "dominant_emotion": "Neutral",
-            "confidence": 85,
-            "emotion_distribution": {
-                "happy": 20,
-                "neutral": 70,
-                "sad": 5,
-                "angry": 3,
-                "fearful": 2
-            },
-            "recommendation":
-                "Maintain eye contact and smile occasionally."
-        }), 200
-
+        analysis = emotion_detector.get_session_analysis()
+        return jsonify(analysis)
     except Exception as e:
         logger.error(f"Emotion analysis error: {e}")
-
         return jsonify({
-            "success": False,
-            "message": str(e)
+            'error': str(e),
+            'overall_emotion': 'Unknown',
+            'status': 'Error'
+        }), 500
+
+@app.route('/api/reset-emotion-session', methods=['POST', 'OPTIONS'])
+def reset_emotion_session():
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    try:
+        result = emotion_detector.reset_session()
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Reset emotion session error: {e}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
         }), 500
         
 
