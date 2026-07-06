@@ -24,6 +24,7 @@ function Login({ onLogin }) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const navigate = useNavigate();
 
   // Check for registration success message
@@ -35,60 +36,59 @@ function Login({ onLogin }) {
     }
   }, []);
 
-  // frontend/src/components/Login.js - Make sure credentials is included
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  
-  if (!formData.username.trim()) {
-    setError('Username is required');
-    return;
-  }
-  if (!formData.password) {
-    setError('Password is required');
-    return;
-  }
-
-  setLoading(true);
-  setError('');
-  setSuccess('');
-
-  try {
-    console.log('📡 Sending login request to:', `${API_URL}/api/login`);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     
-    const response = await fetch(`${API_URL}/api/login`, {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      credentials: 'include',  // IMPORTANT: This sends cookies
-      body: JSON.stringify({
-        username: formData.username,
-        password: formData.password
-      })
-    });
-
-    const data = await response.json();
-    console.log('📥 Login response:', data);
-    
-    if (data.success) {
-      if (onLogin) {
-        onLogin({ 
-          id: data.user_id, 
-          username: data.username 
-        });
-      }
-      navigate('/dashboard');
-    } else {
-      setError(data.message || 'Invalid username or password');
+    if (!formData.username.trim()) {
+      setError('Username is required');
+      return;
     }
-  } catch (err) {
-    console.error('❌ Login error:', err);
-    setError('Connection error. Please check your internet connection.');
-  } finally {
-    setLoading(false);
-  }
-};
+    if (!formData.password) {
+      setError('Password is required');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      console.log('📡 Sending login request to:', `${API_URL}/api/login`);
+      
+      const response = await fetch(`${API_URL}/api/login`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          username: formData.username,
+          password: formData.password
+        })
+      });
+
+      const data = await response.json();
+      console.log('📥 Login response:', data);
+      
+      if (data.success) {
+        if (onLogin) {
+          onLogin({ 
+            id: data.user_id, 
+            username: data.username 
+          });
+        }
+        navigate('/dashboard');
+      } else {
+        setError(data.message || 'Invalid username or password');
+      }
+    } catch (err) {
+      console.error('❌ Login error:', err);
+      setError('Connection error. Please check your internet connection.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="login-container">
@@ -211,9 +211,19 @@ const handleSubmit = async (e) => {
               </button>
               <div className="input-glow"></div>
             </div>
-            <Link to="/forgot-password" className="forgot-link">
-              Forgot password?
-            </Link>
+            <div className="form-options">
+              <label className="remember-me">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                />
+                <span>Remember me</span>
+              </label>
+              <Link to="/forgot-password" className="forgot-link">
+                Forgot password?
+              </Link>
+            </div>
           </div>
 
           <button 
@@ -247,12 +257,14 @@ const handleSubmit = async (e) => {
 
       {/* Styles */}
       <style>{`
+        /* Reset */
         * {
           margin: 0;
           padding: 0;
           box-sizing: border-box;
         }
 
+        /* Container */
         .login-container {
           min-height: 100vh;
           display: flex;
@@ -265,6 +277,7 @@ const handleSubmit = async (e) => {
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
         }
 
+        /* Background Animation */
         .bg-animation {
           position: absolute;
           width: 100%;
@@ -357,10 +370,11 @@ const handleSubmit = async (e) => {
           100% { transform: translateY(-10vh) scale(1); opacity: 0; }
         }
 
+        /* Login Card */
         .login-card {
-          background: rgba(20, 20, 30, 0.9);
+          background: rgba(20, 20, 30, 0.92);
           backdrop-filter: blur(20px);
-          border: 1px solid rgba(108, 92, 231, 0.2);
+          border: 1px solid rgba(108, 92, 231, 0.15);
           border-radius: 24px;
           padding: 40px 48px;
           max-width: 420px;
@@ -373,18 +387,39 @@ const handleSubmit = async (e) => {
           transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
 
+        @media (max-width: 480px) {
+          .login-card {
+            padding: 28px 20px;
+            border-radius: 20px;
+          }
+        }
+
+        @media (max-width: 380px) {
+          .login-card {
+            padding: 20px 16px;
+            border-radius: 16px;
+          }
+        }
+
         .login-card:hover {
           transform: translateY(-5px);
           box-shadow: 
-            0 30px 80px rgba(108, 92, 231, 0.2),
+            0 30px 80px rgba(108, 92, 231, 0.15),
             inset 0 1px 0 rgba(255, 255, 255, 0.05);
         }
 
+        /* Brand Header */
         .brand-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
           margin-bottom: 28px;
+        }
+
+        @media (max-width: 380px) {
+          .brand-header {
+            margin-bottom: 20px;
+          }
         }
 
         .logo {
@@ -394,6 +429,13 @@ const handleSubmit = async (e) => {
           font-size: 20px;
           font-weight: 700;
           color: #ffffff;
+        }
+
+        @media (max-width: 480px) {
+          .logo {
+            font-size: 18px;
+            gap: 10px;
+          }
         }
 
         .logo-icon {
@@ -406,6 +448,18 @@ const handleSubmit = async (e) => {
           background: linear-gradient(135deg, #6c5ce7, #a29bfe);
           border-radius: 12px;
           color: white;
+          flex-shrink: 0;
+        }
+
+        @media (max-width: 480px) {
+          .logo-icon {
+            width: 35px;
+            height: 35px;
+          }
+          .logo-icon svg {
+            width: 22px;
+            height: 22px;
+          }
         }
 
         .pulse-ring {
@@ -432,16 +486,43 @@ const handleSubmit = async (e) => {
           display: flex;
           align-items: center;
           gap: 4px;
+          white-space: nowrap;
         }
 
+        @media (max-width: 480px) {
+          .badge {
+            font-size: 10px;
+            padding: 3px 10px;
+          }
+        }
+
+        /* Auth Header */
         .auth-header {
           margin-bottom: 24px;
+        }
+
+        @media (max-width: 480px) {
+          .auth-header {
+            margin-bottom: 20px;
+          }
         }
 
         .auth-header h1 {
           font-size: 28px;
           font-weight: 700;
           margin: 0 0 8px 0;
+        }
+
+        @media (max-width: 480px) {
+          .auth-header h1 {
+            font-size: 24px;
+          }
+        }
+
+        @media (max-width: 380px) {
+          .auth-header h1 {
+            font-size: 20px;
+          }
         }
 
         .gradient-text {
@@ -457,11 +538,25 @@ const handleSubmit = async (e) => {
           margin: 0;
         }
 
+        @media (max-width: 480px) {
+          .auth-header p {
+            font-size: 13px;
+          }
+        }
+
+        /* Features */
         .features-row {
           display: flex;
           gap: 10px;
           margin-bottom: 24px;
           flex-wrap: wrap;
+        }
+
+        @media (max-width: 480px) {
+          .features-row {
+            gap: 6px;
+            margin-bottom: 20px;
+          }
         }
 
         .feature-item {
@@ -478,6 +573,20 @@ const handleSubmit = async (e) => {
           transition: all 0.3s;
         }
 
+        @media (max-width: 480px) {
+          .feature-item {
+            font-size: 10px;
+            padding: 4px 10px;
+          }
+        }
+
+        @media (max-width: 380px) {
+          .feature-item {
+            font-size: 9px;
+            padding: 3px 8px;
+          }
+        }
+
         .feature-item:hover {
           background: rgba(108, 92, 231, 0.2);
           transform: translateY(-2px);
@@ -488,6 +597,7 @@ const handleSubmit = async (e) => {
           color: #6c5ce7;
         }
 
+        /* Messages */
         .success-message {
           background: rgba(0, 184, 148, 0.1);
           color: #00b894;
@@ -533,10 +643,17 @@ const handleSubmit = async (e) => {
           75% { transform: translateX(5px); }
         }
 
+        /* Form */
         .login-form {
           display: flex;
           flex-direction: column;
           gap: 18px;
+        }
+
+        @media (max-width: 480px) {
+          .login-form {
+            gap: 14px;
+          }
         }
 
         .form-group {
@@ -549,6 +666,12 @@ const handleSubmit = async (e) => {
           font-size: 13px;
           font-weight: 600;
           color: #c8c8d4;
+        }
+
+        @media (max-width: 480px) {
+          .form-group label {
+            font-size: 12px;
+          }
         }
 
         .input-wrapper {
@@ -569,6 +692,23 @@ const handleSubmit = async (e) => {
           font-family: inherit;
           position: relative;
           z-index: 1;
+          height: 48px;
+        }
+
+        @media (max-width: 480px) {
+          .form-input {
+            padding: 11px 38px 11px 16px;
+            font-size: 13px;
+            height: 44px;
+          }
+        }
+
+        @media (max-width: 380px) {
+          .form-input {
+            padding: 10px 34px 10px 14px;
+            font-size: 12px;
+            height: 40px;
+          }
         }
 
         .form-input:focus {
@@ -630,13 +770,55 @@ const handleSubmit = async (e) => {
           opacity: 0.5;
         }
 
+        /* Form Options */
+        .form-options {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-top: 4px;
+        }
+
+        @media (max-width: 480px) {
+          .form-options {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+          }
+        }
+
+        .remember-me {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 13px;
+          color: #8a8a9a;
+          cursor: pointer;
+        }
+
+        @media (max-width: 480px) {
+          .remember-me {
+            font-size: 12px;
+          }
+        }
+
+        .remember-me input[type="checkbox"] {
+          width: 16px;
+          height: 16px;
+          accent-color: #6c5ce7;
+          cursor: pointer;
+        }
+
         .forgot-link {
-          font-size: 12px;
+          font-size: 13px;
           color: #6c5ce7;
           text-decoration: none;
-          text-align: right;
-          margin-top: 4px;
           transition: color 0.3s;
+        }
+
+        @media (max-width: 480px) {
+          .forgot-link {
+            font-size: 12px;
+          }
         }
 
         .forgot-link:hover {
@@ -644,6 +826,7 @@ const handleSubmit = async (e) => {
           text-decoration: underline;
         }
 
+        /* Button */
         .btn-primary {
           width: 100%;
           padding: 14px;
@@ -663,6 +846,23 @@ const handleSubmit = async (e) => {
           font-family: inherit;
           position: relative;
           overflow: hidden;
+          height: 54px;
+        }
+
+        @media (max-width: 480px) {
+          .btn-primary {
+            padding: 12px;
+            font-size: 15px;
+            height: 48px;
+          }
+        }
+
+        @media (max-width: 380px) {
+          .btn-primary {
+            padding: 10px;
+            font-size: 14px;
+            height: 44px;
+          }
         }
 
         .btn-primary::before {
@@ -720,11 +920,18 @@ const handleSubmit = async (e) => {
           to { transform: rotate(360deg); }
         }
 
+        /* Divider */
         .divider {
           display: flex;
           align-items: center;
           gap: 16px;
           margin: 24px 0 20px;
+        }
+
+        @media (max-width: 480px) {
+          .divider {
+            margin: 20px 0 16px;
+          }
         }
 
         .divider::before,
@@ -741,6 +948,7 @@ const handleSubmit = async (e) => {
           white-space: nowrap;
         }
 
+        /* Register Link */
         .register-link {
           display: flex;
           align-items: center;
@@ -751,8 +959,15 @@ const handleSubmit = async (e) => {
           font-weight: 600;
           font-size: 14px;
           transition: all 0.3s;
-          padding: 8px;
+          padding: 10px;
           border-radius: 8px;
+        }
+
+        @media (max-width: 480px) {
+          .register-link {
+            font-size: 13px;
+            padding: 8px;
+          }
         }
 
         .register-link:hover {
@@ -761,121 +976,7 @@ const handleSubmit = async (e) => {
           color: #a29bfe;
         }
 
-        @media (max-width: 768px) {
-          .login-card {
-            padding: 32px 28px;
-            max-width: 400px;
-          }
-
-          .auth-header h1 {
-            font-size: 26px;
-          }
-
-          .features-row {
-            gap: 8px;
-          }
-
-          .feature-item {
-            font-size: 11px;
-            padding: 5px 12px;
-          }
-        }
-
-        @media (max-width: 480px) {
-          .login-card {
-            padding: 24px 20px;
-            border-radius: 20px;
-            max-width: 100%;
-          }
-
-          .auth-header h1 {
-            font-size: 24px;
-          }
-
-          .auth-header p {
-            font-size: 13px;
-          }
-
-          .features-row {
-            gap: 6px;
-          }
-
-          .feature-item {
-            font-size: 10px;
-            padding: 4px 10px;
-          }
-
-          .brand-header {
-            margin-bottom: 20px;
-          }
-
-          .logo {
-            font-size: 18px;
-          }
-
-          .logo-icon {
-            width: 35px;
-            height: 35px;
-          }
-
-          .logo-icon svg {
-            width: 22px;
-            height: 22px;
-          }
-
-          .form-input {
-            padding: 11px 38px 11px 16px;
-            font-size: 13px;
-          }
-
-          .btn-primary {
-            padding: 12px;
-            font-size: 15px;
-          }
-
-          .login-form {
-            gap: 14px;
-          }
-
-          .divider {
-            margin: 20px 0 16px;
-          }
-
-          .forgot-link {
-            font-size: 11px;
-          }
-        }
-
-        @media (max-width: 380px) {
-          .login-card {
-            padding: 16px;
-            border-radius: 16px;
-          }
-
-          .auth-header h1 {
-            font-size: 20px;
-          }
-
-          .features-row {
-            gap: 4px;
-          }
-
-          .feature-item {
-            font-size: 9px;
-            padding: 3px 8px;
-          }
-
-          .form-input {
-            padding: 10px 34px 10px 14px;
-            font-size: 12px;
-          }
-
-          .btn-primary {
-            padding: 10px;
-            font-size: 14px;
-          }
-        }
-
+        /* Touch-friendly for mobile */
         @media (hover: none) {
           .feature-item:hover {
             transform: none;
@@ -889,6 +990,28 @@ const handleSubmit = async (e) => {
           .btn-primary:hover:not(:disabled) {
             transform: none;
           }
+
+          .register-link:hover {
+            gap: 8px;
+            background: none;
+          }
+        }
+
+        /* Fix for iOS Safari */
+        @supports (-webkit-touch-callout: none) {
+          .login-card {
+            background: rgba(20, 20, 30, 0.98);
+          }
+        }
+
+        /* Dark mode support for input autofill */
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover,
+        input:-webkit-autofill:focus,
+        input:-webkit-autofill:active {
+          -webkit-box-shadow: 0 0 0 30px rgba(20, 20, 30, 0.95) inset !important;
+          -webkit-text-fill-color: #ffffff !important;
+          transition: background-color 5000s ease-in-out 0s;
         }
       `}</style>
     </div>
