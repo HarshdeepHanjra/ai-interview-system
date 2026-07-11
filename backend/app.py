@@ -25,9 +25,10 @@ app.secret_key = os.getenv('SECRET_KEY', 'your-secret-key-change-this')
 # =============================================
 app.config.update(
     SECRET_KEY=os.getenv('SECRET_KEY', 'your-secret-key'),
-    SESSION_COOKIE_SECURE=True,        # HTTPS ke liye
+    SESSION_COOKIE_NAME = "session",
+    SESSION_COOKIE_SECURE=True,        
     SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SAMESITE='None',    # Cross-domain support
+    SESSION_COOKIE_SAMESITE='None',    
     PERMANENT_SESSION_LIFETIME=timedelta(days=7),
     SESSION_COOKIE_DOMAIN=None,
     SESSION_COOKIE_PATH='/'
@@ -45,8 +46,6 @@ CORS(app,
          'https://ai-interview-system-one-wheat.vercel.app',
          'https://ai-interview-frontend.vercel.app',
          'https://ai-interview-system.vercel.app',
-         'https://*.vercel.app',
-         'https://*.onrender.com'
      ],
      allow_headers=['Content-Type', 'Authorization'],
      methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
