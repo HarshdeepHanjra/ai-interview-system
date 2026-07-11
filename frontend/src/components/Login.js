@@ -688,7 +688,7 @@ function Login({ onLogin }) {
           border-radius: 12px;
           font-size: 14px;
           transition: all 0.3s;
-          color: #ffffff;
+          color: #000000;
           font-family: inherit;
           position: relative;
           z-index: 1;
